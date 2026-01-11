@@ -1,0 +1,42 @@
+[
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:60588",
+    "dateTime": "2026-01-10T17:55:10.395412500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-10T17:55:10.657037100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:53368",
+    "dateTime": "2026-01-10T18:01:15.400049700"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: איתמר שפירא, id=999999999, type=VIP",
+    "dateTime": "2026-01-10T18:01:33.915096500"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_CATALOG",
+    "description": "Product added to catalog: id=9385029146, name=אסלה, category=חדר שירותים, price=50.0",
+    "dateTime": "2026-01-10T18:02:04.272261100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:53268",
+    "dateTime": "2026-01-10T18:11:52.702706300"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 9385029146 added to inventory of branch B1 (qty=10)",
+    "dateTime": "2026-01-10T18:12:44.425767500"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 9385029146 added to inventory of branch B2 (qty=10)",
+    "dateTime": "2026-01-10T18:13:06.259137300"
+  }
+]

@@ -66,4 +66,25 @@ public class Employee {
         this.active = active;
     }
 
+    // Setters נוספים לעדכון פרטי עובד
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
+
+    public void setBankAccount(String bankAccount) {
+        this.bankAccount = bankAccount;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public void setBranchId(String branchId) {
+        this.branchId = branchId;
+    }
+
 }

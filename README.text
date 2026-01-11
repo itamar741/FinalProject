@@ -1,0 +1,46 @@
+# Final Project – Internet Programming (Java)
+
+## Stage 1: Core Business Logic and Exception Handling
+
+---
+
+## Implemented Components
+
+### Data Model
+The following entities were implemented:
+- Branch
+- Product
+- Employee
+- Customer
+- Sale
+- LogEntry
+
+---
+
+### Managers
+The system includes dedicated manager classes for handling collections and enforcing business rules:
+- **Inventory** – Manages products and stock per branch
+- **CustomerManager** – Manages customers and enforces unique ID numbers
+- **SalesManager** – Stores completed sales
+- **LogManager** – Stores system logs
+
+---
+
+### Business Logic
+The following business processes are implemented:
+- Adding products to inventory
+- Selling products with stock validation
+- Preventing sales of inactive products
+- Preventing duplicate customers based on ID number
+
+---
+
+### Exception Handling
+Custom checked exceptions are used to represent business rule violations:
+- `InvalidQuantityException`
+- `InsufficientStockException`
+- `InactiveProductException`
+- `DuplicateCustomerException`
+
+Business logic methods throw exceptions, while exception handling is performed in `Main`
+using `try/catch` bl

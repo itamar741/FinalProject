@@ -1,4 +1,6 @@
-package model;
+package model.managers;
+
+import model.LogEntry;
 
 import java.util.List;
 import java.util.ArrayList;

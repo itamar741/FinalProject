@@ -1,22 +1,17 @@
 package model;
 
-public class Customer {
+public abstract class Customer {
 
-    private String fullName;
-    private String idNumber;
-    private String phone;
-    private String customerType;
+    protected String fullName;
+    protected String idNumber;
+    protected String phone;
 
-    public Customer(String fullName,
-                    String idNumber,
-                    String phone,
-                    String customerType) {
-
+    public Customer(String fullName, String idNumber, String phone) {
         this.fullName = fullName;
         this.idNumber = idNumber;
         this.phone = phone;
-        this.customerType = customerType;
     }
+
     public String getFullName() {
         return fullName;
     }
@@ -29,9 +24,7 @@ public class Customer {
         return phone;
     }
 
-    public String getCustomerType() {
-        return customerType;
-    }
-
-
+    public abstract double calculatePrice(double basePrice);
 }
+
+

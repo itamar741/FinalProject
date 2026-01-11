@@ -1,7 +1,7 @@
 package model;
 
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
 
 import model.exceptions.InvalidQuantityException;
 import model.exceptions.InsufficientStockException;
@@ -9,20 +9,10 @@ import model.exceptions.InactiveProductException;
 
 public class Inventory {
 
-    private String branchId;
     private Map<Product, Integer> products;
 
-    public Inventory(String branchId) {
-        this.branchId = branchId;
+    public Inventory() {
         this.products = new HashMap<>();
-    }
-
-    public String getBranchId() {
-        return branchId;
-    }
-
-    public Map<Product, Integer> getProducts() {
-        return products;
     }
 
     public void addProduct(Product product, int quantity)
@@ -33,12 +23,8 @@ public class Inventory {
         }
 
         Integer currentQuantity = products.get(product);
-
-        if (currentQuantity == null) {
-            products.put(product, quantity);
-        } else {
-            products.put(product, currentQuantity + quantity);
-        }
+        products.put(product,
+                currentQuantity == null ? quantity : currentQuantity + quantity);
     }
 
     public void sellProduct(Product product, int quantity)
@@ -65,11 +51,29 @@ public class Inventory {
 
     public int getProductQuantity(Product product) {
         Integer quantity = products.get(product);
-
-        if (quantity == null) {
-            return 0;
+        return quantity == null ? 0 : quantity;
+    }
+    
+    /**
+     * קבלת כל המוצרים במלאי (לשמירה)
+     */
+    public Map<Product, Integer> getAllProducts() {
+        return new HashMap<>(products);
+    }
+    
+    /**
+     * טעינת מוצרים למלאי (מטעינה)
+     */
+    public void setProducts(Map<Product, Integer> products) {
+        this.products = new HashMap<>(products);
+    }
+    
+    /**
+     * הוספת מוצר למלאי עם כמות ספציפית (לטעינה - לא בודק תקינות)
+     */
+    public void loadProduct(Product product, int quantity) {
+        if (product != null && quantity >= 0) {
+            products.put(product, quantity);
         }
-
-        return quantity;
     }
 }
