@@ -1,8 +1,26 @@
 {
-  "999999999": {
-    "fullName": "איתמר שפירא",
-    "idNumber": "999999999",
-    "phone": "0525341088",
+  "123456789": {
+    "fullName": "איתמר",
+    "idNumber": "123456789",
+    "phone": "0",
+    "customerType": "NEW"
+  },
+  "222222222": {
+    "fullName": "RETURNING",
+    "idNumber": "222222222",
+    "phone": "0",
+    "customerType": "RETURNING"
+  },
+  "111111111": {
+    "fullName": "NEW",
+    "idNumber": "111111111",
+    "phone": "0",
+    "customerType": "NEW"
+  },
+  "333333333": {
+    "fullName": "VIP",
+    "idNumber": "333333333",
+    "phone": "0",
     "customerType": "VIP"
   }
 }

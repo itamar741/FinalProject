@@ -14,6 +14,12 @@ import model.ReturningCustomer;
 import java.io.*;
 import java.net.Socket;
 import java.util.Map;
+import java.util.List;
+import model.ReportEntry;
+import model.ChatMessage;
+import model.ChatSession;
+import model.ChatUserStatus;
+import model.ChatRequest;
 
 public class ClientHandler implements Runnable {
 
@@ -168,6 +174,42 @@ public class ClientHandler implements Runnable {
             return "OK;Customer added successfully";
         }
 
+        case "UPDATE_CUSTOMER": {
+            // בדיקת פרמטרים
+            if (parts.length < 5) {
+                throw new IllegalArgumentException("UPDATE_CUSTOMER requires: idNumber;fullName;phone;customerType");
+            }
+            
+            // ADMIN ו-EMPLOYEE יכולים לעדכן לקוחות
+            String customerType = parts[4].toUpperCase();
+            if (!customerType.equals("NEW") && 
+                !customerType.equals("RETURNING") && 
+                !customerType.equals("VIP")) {
+                throw new IllegalArgumentException("Invalid customer type. Must be: NEW, RETURNING, or VIP");
+            }
+            
+            controller.updateCustomer(
+                    parts[1],  // idNumber
+                    parts[2],  // fullName
+                    parts[3],  // phone
+                    customerType
+            );
+            
+            return "OK;Customer updated successfully";
+        }
+
+        case "DELETE_CUSTOMER": {
+            // בדיקת פרמטרים
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("DELETE_CUSTOMER requires: idNumber");
+            }
+            
+            // ADMIN ו-EMPLOYEE יכולים למחוק לקוחות
+            controller.deleteCustomer(parts[1]);
+            
+            return "OK;Customer deleted successfully";
+        }
+
         case "ADD_PRODUCT_TO_INVENTORY": {
             // בדיקת פרמטרים
             if (parts.length < 4) {
@@ -205,15 +247,21 @@ public class ClientHandler implements Runnable {
             return "OK;Product added to inventory successfully";
         }
 
-        case "ADD_PRODUCT_TO_CATALOG":
+        case "ADD_PRODUCT": {
             // בדיקת פרמטרים
-            if (parts.length < 5) {
-                throw new IllegalArgumentException("ADD_PRODUCT_TO_CATALOG requires: productId;name;category;price");
+            if (parts.length < 7) {
+                throw new IllegalArgumentException("ADD_PRODUCT requires: productId;name;category;price;quantity;branchId");
             }
             
-            // רק ADMIN יכול להוסיף לקטלוג
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can add products to catalog");
+            // ADMIN ו-EMPLOYEE יכולים להוסיף מוצר חדש
+            // EMPLOYEE יכול רק לסניף שלו, ADMIN יכול לכל סניף
+            
+            String requestedBranchId = parts[6];
+            
+            // בדיקה: EMPLOYEE יכול להוסיף רק לסניף שלו
+            if (!userType.equals("ADMIN") && 
+                !currentSession.getBranchId().equals(requestedBranchId)) {
+                throw new UnauthorizedException("You can only add products to your own branch (" + currentSession.getBranchId() + "). Only ADMIN can add to any branch");
             }
             
             // בדיקת תקינות מחיר
@@ -227,6 +275,17 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("Invalid price format: " + parts[4]);
             }
             
+            // בדיקת תקינות כמות
+            int quantity;
+            try {
+                quantity = Integer.parseInt(parts[5]);
+                if (quantity <= 0) {
+                    throw new InvalidQuantityException("Quantity must be greater than 0");
+                }
+            } catch (NumberFormatException e) {
+                throw new InvalidQuantityException("Invalid quantity format: " + parts[5]);
+            }
+            
             // בדיקה שכל השדות לא ריקים
             if (parts[1].trim().isEmpty() || 
                 parts[2].trim().isEmpty() || 
@@ -234,14 +293,96 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("Product ID, name, and category cannot be empty");
             }
             
-            controller.addProductToCatalog(
+            controller.addProduct(
                     parts[1],  // productId
                     parts[2],  // name
                     parts[3],  // category
-                    price
+                    price,
+                    quantity,
+                    requestedBranchId
             );
             
-            return "OK;Product added to catalog successfully";
+            return "OK;Product added successfully";
+        }
+
+        case "REMOVE_FROM_INVENTORY": {
+            // בדיקת פרמטרים
+            if (parts.length < 4) {
+                throw new IllegalArgumentException("REMOVE_FROM_INVENTORY requires: productId;quantity;branchId");
+            }
+            
+            // ADMIN ו-EMPLOYEE יכולים להסיר מהמלאי
+            // EMPLOYEE יכול רק מהסניף שלו, ADMIN יכול מכל סניף
+            
+            String requestedBranchId = parts[3];
+            
+            // בדיקה: EMPLOYEE יכול להסיר רק מהסניף שלו
+            if (!userType.equals("ADMIN") && 
+                !currentSession.getBranchId().equals(requestedBranchId)) {
+                throw new UnauthorizedException("You can only remove products from your own branch (" + currentSession.getBranchId() + "). Only ADMIN can remove from any branch");
+            }
+            
+            // בדיקת תקינות כמות
+            int quantity;
+            try {
+                quantity = Integer.parseInt(parts[2]);
+                if (quantity <= 0) {
+                    throw new InvalidQuantityException("Quantity must be greater than 0");
+                }
+            } catch (NumberFormatException e) {
+                throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
+            }
+            
+            controller.removeFromInventory(
+                    parts[1],  // productId
+                    quantity,
+                    requestedBranchId
+            );
+            
+            return "OK;Product removed from inventory successfully";
+        }
+
+        case "DELETE_PRODUCT": {
+            // בדיקת פרמטרים
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("DELETE_PRODUCT requires: productId");
+            }
+            
+            // רק ADMIN יכול למחוק מוצר
+            if (!userType.equals("ADMIN")) {
+                throw new UnauthorizedException("Only ADMIN can delete products");
+            }
+            
+            controller.deleteProduct(parts[1]);
+            
+            return "OK;Product deleted successfully";
+        }
+
+        case "CALCULATE_PRICE": {
+            // בדיקת פרמטרים
+            if (parts.length < 4) {
+                throw new IllegalArgumentException("CALCULATE_PRICE requires: productId;quantity;customerId");
+            }
+            
+            // בדיקת תקינות כמות
+            int quantity;
+            try {
+                quantity = Integer.parseInt(parts[2]);
+                if (quantity <= 0) {
+                    throw new InvalidQuantityException("Quantity must be greater than 0");
+                }
+            } catch (NumberFormatException e) {
+                throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
+            }
+            
+            double finalPrice = controller.calculatePrice(
+                    parts[1],  // productId
+                    quantity,
+                    parts[3]   // customerId
+            );
+            
+            return "OK;" + finalPrice;
+        }
 
         case "SELL":
             // בדיקת פרמטרים
@@ -335,6 +476,147 @@ public class ClientHandler implements Runnable {
                             .append(quantity).append("|");
             }
             return productsList.toString();
+        }
+            
+        case "LIST_PRODUCTS_BY_BRANCH": {
+            // בדיקת פרמטרים
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("LIST_PRODUCTS_BY_BRANCH requires: branchId");
+            }
+            
+            String requestedBranchId = parts[1];
+            
+            // בדיקה: EMPLOYEE יכול לראות רק את הסניף שלו
+            if (!userType.equals("ADMIN") && 
+                !currentSession.getBranchId().equals(requestedBranchId)) {
+                throw new UnauthorizedException("You can only view products from your own branch (" + currentSession.getBranchId() + "). Only ADMIN can view any branch");
+            }
+            
+            // כל המשתמשים המחוברים יכולים לראות מוצרים
+            Map<String, Product> products = controller.getAllProductsForDisplay();
+            StringBuilder productsList = new StringBuilder("OK;");
+            
+            for (Product p : products.values()) {
+                // כמות בסניף המבוקש
+                int quantity = controller.getInventoryQuantity(p.getProductId(), requestedBranchId);
+                
+                productsList.append(p.getProductId()).append(":")
+                            .append(p.getName()).append(":")
+                            .append(p.getCategory()).append(":")
+                            .append(p.getPrice()).append(":")
+                            .append(p.isActive() ? "active" : "inactive").append(":")
+                            .append(quantity).append("|");
+            }
+            return productsList.toString();
+        }
+
+        // ========== Report Commands ==========
+        case "REPORT_SALES_BY_BRANCH": {
+            // בדיקת פרמטרים (branchId אופציונלי - אם לא מועבר, מחזיר את כל הסניפים)
+            String branchId = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
+            
+            // אם עובד, יכול לראות רק את הסניף שלו
+            if (!userType.equals("ADMIN") && (branchId == null || !branchId.equals(currentSession.getBranchId()))) {
+                branchId = currentSession.getBranchId();
+            }
+            
+            List<ReportEntry> report = controller.getSalesReportByBranch(branchId);
+            
+            // המרה ל-JSON (compact format)
+            StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_BRANCH\",\"branchId\":\"" + 
+                escapeJson(branchId != null ? branchId : "ALL") + "\",\"entries\":[");
+            for (int i = 0; i < report.size(); i++) {
+                ReportEntry entry = report.get(i);
+                if (i > 0) json.append(",");
+                json.append("{\"branchId\":\"").append(escapeJson(entry.getBranchId()))
+                    .append("\",\"quantity\":").append(entry.getQuantity())
+                    .append(",\"totalRevenue\":").append(String.format("%.2f", entry.getTotalRevenue()))
+                    .append("}");
+            }
+            json.append("]}");
+            
+            return "OK;" + json.toString();
+        }
+
+        case "REPORT_SALES_BY_PRODUCT": {
+            // בדיקת פרמטרים (productId אופציונלי)
+            String productId = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
+            
+            List<ReportEntry> report = controller.getSalesReportByProduct(productId);
+            
+            // המרה ל-JSON (compact format)
+            StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_PRODUCT\",\"productId\":\"" + 
+                escapeJson(productId != null ? productId : "ALL") + "\",\"entries\":[");
+            for (int i = 0; i < report.size(); i++) {
+                ReportEntry entry = report.get(i);
+                if (i > 0) json.append(",");
+                json.append("{\"branchId\":\"").append(escapeJson(entry.getBranchId()))
+                    .append("\",\"productId\":\"").append(escapeJson(entry.getProductId()))
+                    .append("\",\"productName\":\"").append(escapeJson(entry.getProductName()))
+                    .append("\",\"category\":\"").append(escapeJson(entry.getCategory()))
+                    .append("\",\"quantity\":").append(entry.getQuantity())
+                    .append(",\"totalRevenue\":").append(String.format("%.2f", entry.getTotalRevenue()))
+                    .append(",\"date\":\"").append(escapeJson(entry.getDate()))
+                    .append("\"}");
+            }
+            json.append("]}");
+            
+            return "OK;" + json.toString();
+        }
+
+        case "REPORT_SALES_BY_CATEGORY": {
+            // בדיקת פרמטרים (category אופציונלי)
+            String category = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
+            
+            List<ReportEntry> report = controller.getSalesReportByCategory(category);
+            
+            // המרה ל-JSON (compact format)
+            StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_CATEGORY\",\"category\":\"" + 
+                escapeJson(category != null ? category : "ALL") + "\",\"entries\":[");
+            for (int i = 0; i < report.size(); i++) {
+                ReportEntry entry = report.get(i);
+                if (i > 0) json.append(",");
+                json.append("{\"category\":\"").append(escapeJson(entry.getCategory()))
+                    .append("\",\"quantity\":").append(entry.getQuantity())
+                    .append(",\"totalRevenue\":").append(String.format("%.2f", entry.getTotalRevenue()))
+                    .append("}");
+            }
+            json.append("]}");
+            
+            return "OK;" + json.toString();
+        }
+
+        case "REPORT_DAILY_SALES": {
+            // בדיקת פרמטרים: date;branchId (שניהם אופציונליים)
+            String date = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
+            String branchId = (parts.length > 2 && !parts[2].isEmpty()) ? parts[2] : null;
+            
+            // אם עובד, יכול לראות רק את הסניף שלו
+            if (!userType.equals("ADMIN") && (branchId == null || !branchId.equals(currentSession.getBranchId()))) {
+                branchId = currentSession.getBranchId();
+            }
+            
+            List<ReportEntry> report = controller.getDailySalesReport(date, branchId);
+            
+            // המרה ל-JSON (compact format)
+            StringBuilder json = new StringBuilder("{\"reportType\":\"DAILY_SALES\",\"date\":\"" + 
+                escapeJson(date != null ? date : "ALL") + "\",\"branchId\":\"" + 
+                escapeJson(branchId != null ? branchId : "ALL") + "\",\"entries\":[");
+            for (int i = 0; i < report.size(); i++) {
+                ReportEntry entry = report.get(i);
+                if (i > 0) json.append(",");
+                json.append("{\"branchId\":\"").append(escapeJson(entry.getBranchId()))
+                    .append("\",\"productId\":\"").append(escapeJson(entry.getProductId()))
+                    .append("\",\"productName\":\"").append(escapeJson(entry.getProductName()))
+                    .append("\",\"category\":\"").append(escapeJson(entry.getCategory()))
+                    .append("\",\"quantity\":").append(entry.getQuantity())
+                    .append(",\"totalRevenue\":").append(String.format("%.2f", entry.getTotalRevenue()))
+                    .append(",\"date\":\"").append(escapeJson(entry.getDate()))
+                    .append("\"}");
+            }
+            json.append("]}");
+            
+            return "OK;" + json.toString();
         }
 
         // ========== Admin Commands - User Management ==========
@@ -505,8 +787,239 @@ public class ClientHandler implements Runnable {
             }
             return branchEmployeesList.toString();
 
+        case "REQUEST_CHAT": {
+            String username = currentSession.getUsername();
+            String branchId = currentSession.getBranchId();
+            String result = controller.requestChat(username, branchId);
+            return result;
+        }
+
+        case "SEND_MESSAGE": {
+            if (parts.length < 3) {
+                throw new IllegalArgumentException("SEND_MESSAGE requires: chatId;message");
+            }
+            String chatId = parts[1];
+            String message = parts[2];
+            String sender = currentSession.getUsername();
+            controller.sendChatMessage(chatId, sender, message);
+            
+            // שליחת הודעה לכל המשתתפים בצ'אט
+            model.ChatSession chat = controller.getUserChat(sender);
+            if (chat != null && chat.getChatId().equals(chatId)) {
+                // ההודעה נשלחת דרך השרת לכל המשתתפים
+                // זה יטופל ב-GUI דרך polling או push notifications
+            }
+            return "OK;Message sent";
+        }
+
+        case "GET_CHAT_MESSAGES": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("GET_CHAT_MESSAGES requires: chatId");
+            }
+            String chatId = parts[1];
+            List<model.ChatMessage> messages = controller.getChatHistory(chatId);
+            StringBuilder json = new StringBuilder("OK;{\"chatId\":\"").append(escapeJson(chatId))
+                .append("\",\"messages\":[");
+            for (int i = 0; i < messages.size(); i++) {
+                model.ChatMessage msg = messages.get(i);
+                json.append(msg.toJson());
+                if (i < messages.size() - 1) json.append(",");
+            }
+            json.append("]}");
+            return json.toString();
+        }
+
+        case "END_CHAT": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("END_CHAT requires: chatId");
+            }
+            String chatId = parts[1];
+            String username = currentSession.getUsername();
+            String branchId = currentSession.getBranchId();
+            controller.endChat(chatId);
+            
+            // מציאת הסניף השני (יש רק שני סניפים)
+            String otherBranchId = null;
+            Map<String, model.Session> allSessions = controller.getSessionManager().getAllActiveSessions();
+            for (model.Session session : allSessions.values()) {
+                if (!session.getBranchId().equals(branchId)) {
+                    otherBranchId = session.getBranchId();
+                    break;
+                }
+            }
+            
+            // בדיקה אם יש בקשות ממתינות לסניף השני
+            if (otherBranchId != null) {
+                List<model.ChatRequest> waitingRequests = controller.getWaitingRequestsForBranch(otherBranchId);
+                if (!waitingRequests.isEmpty()) {
+                    // יש בקשות ממתינות - נשלח התראה
+                    StringBuilder notification = new StringBuilder("OK;Chat ended;WAITING:");
+                    for (int i = 0; i < waitingRequests.size(); i++) {
+                        model.ChatRequest req = waitingRequests.get(i);
+                        notification.append(req.getRequestId()).append(":").append(req.getRequesterUsername());
+                        if (i < waitingRequests.size() - 1) notification.append("|");
+                    }
+                    return notification.toString();
+                }
+            }
+            
+            return "OK;Chat ended";
+        }
+
+        case "JOIN_CHAT": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("JOIN_CHAT requires: chatId");
+            }
+            String chatId = parts[1];
+            String managerUsername = currentSession.getUsername();
+            controller.joinChatAsManager(chatId, managerUsername);
+            return "OK;Manager joined chat";
+        }
+
+        case "GET_AVAILABLE_USERS": {
+            // @deprecated - לא בשימוש יותר, הוסר
+            return "ERROR;This command is deprecated and no longer supported";
+        }
+
+        case "GET_WAITING_REQUESTS": {
+            String branchId = currentSession.getBranchId();
+            // מציאת הסניף השני (יש רק שני סניפים)
+            String otherBranchId = null;
+            Map<String, model.Session> allSessions = controller.getSessionManager().getAllActiveSessions();
+            for (model.Session session : allSessions.values()) {
+                if (!session.getBranchId().equals(branchId)) {
+                    otherBranchId = session.getBranchId();
+                    break;
+                }
+            }
+            
+            if (otherBranchId == null) {
+                return "OK;"; // אין סניף שני
+            }
+            
+            List<model.ChatRequest> waitingRequests = controller.getWaitingRequestsForBranch(otherBranchId);
+            StringBuilder result = new StringBuilder("OK;");
+            for (int i = 0; i < waitingRequests.size(); i++) {
+                model.ChatRequest req = waitingRequests.get(i);
+                result.append(req.getRequestId()).append(":").append(req.getRequesterUsername());
+                if (i < waitingRequests.size() - 1) result.append("|");
+            }
+            return result.toString();
+        }
+
+        case "ACCEPT_CHAT_REQUEST": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("ACCEPT_CHAT_REQUEST requires: requestId");
+            }
+            String requestId = parts[1];
+            String acceptingUsername = currentSession.getUsername();
+            String result = controller.acceptChatRequest(acceptingUsername, requestId);
+            return result;
+        }
+
+        case "GET_CHAT_HISTORY": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("GET_CHAT_HISTORY requires: chatId");
+            }
+            String chatId = parts[1];
+            List<model.ChatMessage> messages = controller.getChatHistory(chatId);
+            StringBuilder json = new StringBuilder("OK;{\"chatId\":\"").append(escapeJson(chatId))
+                .append("\",\"messages\":[");
+            for (int i = 0; i < messages.size(); i++) {
+                model.ChatMessage msg = messages.get(i);
+                json.append(msg.toJson());
+                if (i < messages.size() - 1) json.append(",");
+            }
+            json.append("]}");
+            return json.toString();
+        }
+
+        case "CANCEL_CHAT_REQUEST": {
+            String username = currentSession.getUsername();
+            boolean cancelled = controller.cancelChatRequest(username);
+            if (cancelled) {
+                return "OK;Chat request cancelled";
+            } else {
+                return "ERROR;No pending chat request found";
+            }
+        }
+
+        case "GET_USER_CHAT": {
+            String username = currentSession.getUsername();
+            model.ChatSession chat = controller.getUserChat(username);
+            if (chat == null) {
+                return "OK;NO_CHAT";
+            }
+            StringBuilder result = new StringBuilder("OK;CHAT;");
+            result.append(chat.getChatId()).append(";");
+            result.append(chat.getStartTime()).append(";");
+            result.append(chat.getParticipantCount()).append(";");
+            for (String participant : chat.getParticipants()) {
+                result.append(participant).append(",");
+            }
+            return result.toString();
+        }
+
+        case "GET_USER_CHAT_STATUS": {
+            String username = currentSession.getUsername();
+            model.ChatUserStatus status = controller.getUserChatStatus(username);
+            return "OK;" + status.name();
+        }
+
+        case "GET_LOGS": {
+            List<model.LogEntry> logs = controller.getAllLogs();
+            StringBuilder json = new StringBuilder("OK;[");
+            for (int i = 0; i < logs.size(); i++) {
+                model.LogEntry log = logs.get(i);
+                String chatIdJson = log.getChatId() != null ? 
+                    String.format(",\"chatId\":\"%s\"", escapeJson(log.getChatId())) : "";
+                json.append(String.format(
+                    "{\"actionType\":\"%s\",\"description\":\"%s\",\"dateTime\":\"%s\"%s}",
+                    escapeJson(log.getActionType()), escapeJson(log.getDescription()), 
+                    escapeJson(log.getDateTime()), chatIdJson
+                ));
+                if (i < logs.size() - 1) json.append(",");
+            }
+            json.append("]");
+            return json.toString();
+        }
+
+        case "GET_CHAT_DETAILS": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("GET_CHAT_DETAILS requires: chatId");
+            }
+            String chatId = parts[1];
+            String result = controller.getChatDetails(chatId);
+            return "OK;" + result;
+        }
+
+        case "SAVE_CHAT_TO_RTF": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("SAVE_CHAT_TO_RTF requires: chatId");
+            }
+            String chatId = parts[1];
+            try {
+                String fileName = controller.saveChatToRTF(chatId);
+                return "OK;Saved;" + fileName;
+            } catch (IOException e) {
+                return "ERROR;" + e.getMessage();
+            }
+        }
+
         default:
             throw new IllegalArgumentException("Unknown command: " + parts[0]);
     }
-}
+    }
+    
+    /**
+     * Escaping JSON strings
+     */
+    private String escapeJson(String str) {
+        if (str == null) return "";
+        return str.replace("\\", "\\\\")
+                  .replace("\"", "\\\"")
+                  .replace("\n", "\\n")
+                  .replace("\r", "\\r")
+                  .replace("\t", "\\t");
+    }
 }

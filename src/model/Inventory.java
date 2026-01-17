@@ -55,6 +55,30 @@ public class Inventory {
     }
     
     /**
+     * הסרת כמות מהמלאי
+     */
+    public void removeProduct(Product product, int quantity)
+            throws InvalidQuantityException, InsufficientStockException {
+        
+        if (quantity <= 0) {
+            throw new InvalidQuantityException("Quantity must be greater than 0");
+        }
+        
+        Integer currentQuantity = products.get(product);
+        
+        if (currentQuantity == null || currentQuantity < quantity) {
+            throw new InsufficientStockException("Not enough stock to remove");
+        }
+        
+        int newQuantity = currentQuantity - quantity;
+        if (newQuantity == 0) {
+            products.remove(product);
+        } else {
+            products.put(product, newQuantity);
+        }
+    }
+    
+    /**
      * קבלת כל המוצרים במלאי (לשמירה)
      */
     public Map<Product, Integer> getAllProducts() {

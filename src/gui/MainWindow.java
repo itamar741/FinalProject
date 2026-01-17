@@ -25,10 +25,11 @@ public class MainWindow extends JFrame {
     // טאבים
     private CustomersTab customersTab;
     private ProductsTab productsTab;
-    private SalesTab salesTab;
     private UsersManagementTab usersTab;  // Admin only
     private EmployeesManagementTab employeesTab;  // Admin only
     private ReportsTab reportsTab;
+    private ChatTab chatTab;
+    private LogsTab logsTab;  // Admin only
     
     public MainWindow(ClientConnection connection, String username, String userType, String branchId, String employeeNumber) {
         this.connection = connection;
@@ -60,25 +61,31 @@ public class MainWindow extends JFrame {
         productsTab = new ProductsTab(connection, this, userType, branchId);
         tabbedPane.addTab("מוצרים ומלאי", productsTab);
         
-        // טאב 3: מכירות (כל המשתמשים)
-        salesTab = new SalesTab(connection, this, userType, branchId, employeeNumber);
-        tabbedPane.addTab("מכירות", salesTab);
-        
-        // טאב 4: ניהול משתמשים (Admin only)
+        // טאב 3: ניהול משתמשים (Admin only)
         if (userType.equals("ADMIN")) {
             usersTab = new UsersManagementTab(connection, this);
             tabbedPane.addTab("ניהול משתמשים", usersTab);
         }
         
-        // טאב 5: ניהול עובדים (Admin only)
+        // טאב 4: ניהול עובדים (Admin only)
         if (userType.equals("ADMIN")) {
             employeesTab = new EmployeesManagementTab(connection, this);
             tabbedPane.addTab("ניהול עובדים", employeesTab);
         }
         
+        // טאב 5: לוגים (Admin only)
+        if (userType.equals("ADMIN")) {
+            logsTab = new LogsTab(connection, this);
+            tabbedPane.addTab("לוגים", logsTab);
+        }
+        
         // טאב 6: דוחות (כל המשתמשים, אבל עם תוכן שונה)
         reportsTab = new ReportsTab(connection, this, userType);
         tabbedPane.addTab("דוחות", reportsTab);
+        
+        // טאב 7: צ'אט (כל המשתמשים)
+        chatTab = new ChatTab(connection, this);
+        tabbedPane.addTab("צ'אט", chatTab);
         
         add(tabbedPane, BorderLayout.CENTER);
         
@@ -123,9 +130,6 @@ public class MainWindow extends JFrame {
         }
         if (productsTab != null) {
             productsTab.refresh();
-        }
-        if (salesTab != null) {
-            salesTab.refresh();
         }
         if (usersTab != null) {
             usersTab.refresh();

@@ -42,4 +42,13 @@ public class InventoryManager {
     public int getProductQuantity(Branch branch, Product product) {
         return branch.getInventory().getProductQuantity(product);
     }
+    
+    public void removeProduct(Branch branch,
+                             Product product,
+                             int quantity)
+            throws InvalidQuantityException, InsufficientStockException {
+        
+        Inventory inventory = branch.getInventory();
+        inventory.removeProduct(product, quantity);
+    }
 }

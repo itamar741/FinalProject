@@ -118,17 +118,19 @@ public class JsonSerializer {
     
     private String toJsonSaleData(SaleData sale) {
         return String.format(
-            "{\n  \"productId\": \"%s\",\n  \"productName\": \"%s\",\n  \"productCategory\": \"%s\",\n  \"productPrice\": %.2f,\n  \"quantity\": %d,\n  \"branchId\": \"%s\",\n  \"employeeNumber\": \"%s\",\n  \"dateTime\": \"%s\"\n}",
+            "{\n  \"productId\": \"%s\",\n  \"productName\": \"%s\",\n  \"productCategory\": \"%s\",\n  \"productPrice\": %.2f,\n  \"quantity\": %d,\n  \"branchId\": \"%s\",\n  \"employeeNumber\": \"%s\",\n  \"customerId\": \"%s\",\n  \"dateTime\": \"%s\",\n  \"basePrice\": %.2f,\n  \"finalPrice\": %.2f\n}",
             escapeJson(sale.productId), escapeJson(sale.productName), escapeJson(sale.productCategory),
             sale.productPrice, sale.quantity, escapeJson(sale.branchId), escapeJson(sale.employeeNumber),
-            escapeJson(sale.dateTime)
+            escapeJson(sale.customerId), escapeJson(sale.dateTime), sale.basePrice, sale.finalPrice
         );
     }
     
     private String toJsonLogEntry(LogEntry log) {
+        String chatIdJson = log.getChatId() != null ? 
+            String.format(",\n  \"chatId\": \"%s\"", escapeJson(log.getChatId())) : "";
         return String.format(
-            "{\n  \"actionType\": \"%s\",\n  \"description\": \"%s\",\n  \"dateTime\": \"%s\"\n}",
-            escapeJson(log.getActionType()), escapeJson(log.getDescription()), escapeJson(log.getDateTime())
+            "{\n  \"actionType\": \"%s\",\n  \"description\": \"%s\",\n  \"dateTime\": \"%s\"%s\n}",
+            escapeJson(log.getActionType()), escapeJson(log.getDescription()), escapeJson(log.getDateTime()), chatIdJson
         );
     }
     
@@ -462,7 +464,16 @@ public class JsonSerializer {
         sale.quantity = extractInt(json, "quantity");
         sale.branchId = extractString(json, "branchId");
         sale.employeeNumber = extractString(json, "employeeNumber");
+        sale.customerId = extractString(json, "customerId");
         sale.dateTime = extractString(json, "dateTime");
+        // טעינת basePrice ו-finalPrice (אם קיימים)
+        sale.basePrice = extractDouble(json, "basePrice");
+        sale.finalPrice = extractDouble(json, "finalPrice");
+        // אם לא נמצאו (0), נחשב אותם (למקרה של מכירות ישנות)
+        if (sale.basePrice == 0 && sale.finalPrice == 0) {
+            sale.basePrice = sale.productPrice * sale.quantity;
+            sale.finalPrice = sale.basePrice; // ללא הנחה (לא נדע מה היה)
+        }
         return sale;
     }
     
@@ -474,7 +485,12 @@ public class JsonSerializer {
         String actionType = extractString(json, "actionType");
         String description = extractString(json, "description");
         String dateTime = extractString(json, "dateTime");
-        return new LogEntry(actionType, description, dateTime);
+        String chatId = extractString(json, "chatId");
+        // אם chatId ריק או null, נשתמש בקונסטרקטור ללא chatId
+        if (chatId == null || chatId.isEmpty()) {
+            return new LogEntry(actionType, description, dateTime);
+        }
+        return new LogEntry(actionType, description, dateTime, chatId);
     }
     
     public List<String> fromJsonBranches(String json) {

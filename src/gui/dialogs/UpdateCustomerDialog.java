@@ -5,33 +5,38 @@ import gui.MainWindow;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * דיאלוג להוספת לקוח חדש
+ * דיאלוג לעדכון לקוח
  */
-public class AddCustomerDialog extends JDialog {
+public class UpdateCustomerDialog extends JDialog {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
+    private String idNumber;
     
     private JTextField fullNameField;
-    private JTextField idNumberField;
+    private JLabel idNumberLabel;
     private JTextField phoneField;
     private JComboBox<String> customerTypeCombo;
     private JButton saveButton;
     private JButton cancelButton;
     
-    public AddCustomerDialog(MainWindow parent, ClientConnection connection) {
-        super(parent, "הוספת לקוח חדש", true);
+    public UpdateCustomerDialog(MainWindow parent, ClientConnection connection, String idNumber, String fullName, String phone, String customerType) {
+        super(parent, "עדכון לקוח: " + idNumber, true);
         this.connection = connection;
         this.mainWindow = parent;
+        this.idNumber = idNumber;
         
         setSize(400, 250);
         setLocationRelativeTo(parent);
         createUI();
+        
+        // טעינת הנתונים הקיימים
+        fullNameField.setText(fullName);
+        phoneField.setText(phone);
+        customerTypeCombo.setSelectedItem(customerType);
     }
     
     private void createUI() {
@@ -43,9 +48,23 @@ public class AddCustomerDialog extends JDialog {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.anchor = GridBagConstraints.EAST;
         
-        // שם מלא
+        // ת.ז. (read-only)
         gbc.gridx = 0;
         gbc.gridy = 0;
+        mainPanel.add(new JLabel("ת.ז.:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        idNumberLabel = new JLabel(idNumber);
+        idNumberLabel.setForeground(Color.GRAY);
+        mainPanel.add(idNumberLabel, gbc);
+        
+        // שם מלא
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
         mainPanel.add(new JLabel("שם מלא:"), gbc);
         
         gbc.gridx = 1;
@@ -53,19 +72,6 @@ public class AddCustomerDialog extends JDialog {
         gbc.weightx = 1.0;
         fullNameField = new JTextField(20);
         mainPanel.add(fullNameField, gbc);
-        
-        // ת.ז.
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0;
-        mainPanel.add(new JLabel("ת.ז.:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        idNumberField = new JTextField(20);
-        mainPanel.add(idNumberField, gbc);
         
         // טלפון
         gbc.gridx = 0;
@@ -99,7 +105,7 @@ public class AddCustomerDialog extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         
         saveButton = new JButton("שמור");
-        saveButton.addActionListener(e -> saveCustomer());
+        saveButton.addActionListener(e -> updateCustomer());
         buttonPanel.add(saveButton);
         
         cancelButton = new JButton("ביטול");
@@ -112,14 +118,13 @@ public class AddCustomerDialog extends JDialog {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
     }
     
-    private void saveCustomer() {
+    private void updateCustomer() {
         String fullName = fullNameField.getText().trim();
-        String idNumber = idNumberField.getText().trim();
         String phone = phoneField.getText().trim();
         String customerType = (String) customerTypeCombo.getSelectedItem();
         
         // ולידציה
-        if (fullName.isEmpty() || idNumber.isEmpty() || phone.isEmpty()) {
+        if (fullName.isEmpty() || phone.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",
@@ -128,7 +133,7 @@ public class AddCustomerDialog extends JDialog {
         }
         
         try {
-            String command = "ADD_CUSTOMER;" + fullName + ";" + idNumber + ";" + phone + ";" + customerType;
+            String command = "UPDATE_CUSTOMER;" + idNumber + ";" + fullName + ";" + phone + ";" + customerType;
             String response = connection.sendCommand(command);
             
             if (response == null) {
@@ -144,16 +149,16 @@ public class AddCustomerDialog extends JDialog {
             
             if (response.startsWith("OK")) {
                 JOptionPane.showMessageDialog(this,
-                        "לקוח נוסף בהצלחה!",
+                        "לקוח עודכן בהצלחה!",
                         "הצלחה",
                         JOptionPane.INFORMATION_MESSAGE);
-                mainWindow.setStatus("לקוח נוסף בהצלחה", Color.GREEN);
+                mainWindow.setStatus("לקוח עודכן בהצלחה", Color.GREEN);
                 mainWindow.refreshAllTabs();
                 dispose();
             } else if (response.startsWith("ERROR") || response.startsWith("AUTH_ERROR")) {
                 String errorMsg = response.contains(";") ? response.split(";", 2)[1] : response;
                 JOptionPane.showMessageDialog(this,
-                        "שגיאה בהוספת לקוח:\n" + errorMsg,
+                        "שגיאה בעדכון לקוח:\n" + errorMsg,
                         "שגיאה",
                         JOptionPane.ERROR_MESSAGE);
             } else {

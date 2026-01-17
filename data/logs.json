@@ -38,5 +38,410 @@
     "actionType": "ADD_PRODUCT_TO_INVENTORY",
     "description": "Product 9385029146 added to inventory of branch B2 (qty=10)",
     "dateTime": "2026-01-10T18:13:06.259137300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:57271",
+    "dateTime": "2026-01-11T14:17:09.900655500"
+  },
+  {
+    "actionType": "REMOVE_FROM_INVENTORY",
+    "description": "Product 9385029146 removed from inventory of branch B2 (qty=10)",
+    "dateTime": "2026-01-11T14:17:38.069651700"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: VIP, id=9, type=VIP",
+    "dateTime": "2026-01-11T14:18:56.715096800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:19:23.585752800"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:54485",
+    "dateTime": "2026-01-11T14:20:18.204705700"
+  },
+  {
+    "actionType": "DELETE_PRODUCT",
+    "description": "Product 9385029146 deleted from system",
+    "dateTime": "2026-01-11T14:20:44.750224400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:21:07.456456900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:60818",
+    "dateTime": "2026-01-11T14:21:19.110461400"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: NEW, id=NEW, type=NEW",
+    "dateTime": "2026-01-11T14:24:15.934491800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:27:01.316444600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:51354",
+    "dateTime": "2026-01-11T14:27:25.814796300"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: RETURNING, id=RETURNING, type=RETURNING",
+    "dateTime": "2026-01-11T14:27:48.566798600"
+  },
+  {
+    "actionType": "ADD_PRODUCT",
+    "description": "Product 9485033491 (חולצה קצרה שחורה) added to inventory of branch B1 (qty=20, price=70.0)",
+    "dateTime": "2026-01-11T14:30:13.653370500"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 9485033491 added to inventory of branch B2 (qty=30)",
+    "dateTime": "2026-01-11T14:30:35.668217"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: איתמר, id=12, type=NEW",
+    "dateTime": "2026-01-11T14:31:31.631770800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:32:20.056120100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:64941",
+    "dateTime": "2026-01-11T14:32:34.340686800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:35:39.892067500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:63587",
+    "dateTime": "2026-01-11T14:36:04.931883700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:38:07.345575700"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:52085",
+    "dateTime": "2026-01-11T14:40:19.009958800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:43:35.681975"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:57029",
+    "dateTime": "2026-01-11T14:43:56.170572900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:45:13.226943200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:61950",
+    "dateTime": "2026-01-11T14:45:28.444667900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:46:11.922870100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:62355",
+    "dateTime": "2026-01-11T14:46:24.459376700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:46:54.463864900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:62775",
+    "dateTime": "2026-01-11T14:47:13.978694"
+  },
+  {
+    "actionType": "ADD_PRODUCT",
+    "description": "Product 578392773 (חולצה ארוכה לבנה) added to inventory of branch B1 (qty=24, price=100.0)",
+    "dateTime": "2026-01-11T14:48:22.509688200"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 578392773 added to inventory of branch B2 (qty=22)",
+    "dateTime": "2026-01-11T14:48:49.100212500"
+  },
+  {
+    "actionType": "ADD_PRODUCT",
+    "description": "Product 3819001233 (מכנסיים דגמח קצרים) added to inventory of branch B1 (qty=15, price=85.0)",
+    "dateTime": "2026-01-11T14:49:43.601861600"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 3819001233 added to inventory of branch B2 (qty=16)",
+    "dateTime": "2026-01-11T14:50:12.274139900"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product כובע מצחיה ירוק added to inventory of branch B1 (qty=11)",
+    "dateTime": "2026-01-11T14:50:53.789576300"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:50:53.791567100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:56373",
+    "dateTime": "2026-01-11T14:52:12.471766600"
+  },
+  {
+    "actionType": "ADD_CUSTOMER",
+    "description": "Customer added: איתמר, id=123456789, type=NEW",
+    "dateTime": "2026-01-11T14:53:27.236279300"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=123456789, name=איתמר, type=NEW",
+    "dateTime": "2026-01-11T14:54:23.054585900"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=123456789, name=איתמרר, type=NEW",
+    "dateTime": "2026-01-11T14:54:33.102427100"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=123456789, name=איתמר, type=NEW",
+    "dateTime": "2026-01-11T14:54:37.676250900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T14:55:05.221039500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:57650",
+    "dateTime": "2026-01-11T14:56:24.709790"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: איתמר, number=1, role=קופאי, branch=B1",
+    "dateTime": "2026-01-11T14:56:55.859777100"
+  },
+  {
+    "actionType": "UPDATE_EMPLOYEE",
+    "description": "Employee updated: 1",
+    "dateTime": "2026-01-11T14:57:06.341307"
+  },
+  {
+    "actionType": "UPDATE_EMPLOYEE",
+    "description": "Employee updated: 1",
+    "dateTime": "2026-01-11T14:57:11.304482500"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 9485033491, qty=2, branch=B1, customer=222222222, finalPrice=133.0",
+    "dateTime": "2026-01-11T15:00:38.847727800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T15:08:23.912413900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:58623",
+    "dateTime": "2026-01-11T15:08:39.563383800"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 3819001233 (price=85.0), qty=2, basePrice=170.0, finalPrice=144.5, branch=B2, customer=333333333",
+    "dateTime": "2026-01-11T15:09:57.805671"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T15:13:55.795217900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:61280",
+    "dateTime": "2026-01-11T15:14:18.789196800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T15:14:43.685222700"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:61809",
+    "dateTime": "2026-01-11T15:15:43.108308700"
+  },
+  {
+    "actionType": "ADD_PRODUCT",
+    "description": "Product 4839204453 (כובע מצחיה ירוק) added to inventory of branch B1 (qty=13, price=55.0)",
+    "dateTime": "2026-01-11T15:16:17.954651300"
+  },
+  {
+    "actionType": "ADD_PRODUCT_TO_INVENTORY",
+    "description": "Product 4839204453 added to inventory of branch B2 (qty=16)",
+    "dateTime": "2026-01-11T15:16:41.794206"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 9485033491 (price=70.0), qty=3, basePrice=210.0, finalPrice=199.5, branch=B2, customer=222222222",
+    "dateTime": "2026-01-11T15:17:17.462969900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T16:09:58.307263100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:52845",
+    "dateTime": "2026-01-11T16:14:54.023712500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-11T16:17:18.972047300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:50583",
+    "dateTime": "2026-01-14T12:53:28.578265"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:65456",
+    "dateTime": "2026-01-14T13:02:13.972797100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:51270",
+    "dateTime": "2026-01-14T13:09:33.868262100"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:19:28.940319300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:53074",
+    "dateTime": "2026-01-14T13:19:39.412537100"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:20:00.237556200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:60573",
+    "dateTime": "2026-01-14T13:26:34.319782500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:50404",
+    "dateTime": "2026-01-14T13:38:30.274483200"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:40:46.263506100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:63253",
+    "dateTime": "2026-01-14T13:41:02.683602800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:45:12.244661600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:51193",
+    "dateTime": "2026-01-14T13:47:02.793180400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:54:02.556836300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:65428",
+    "dateTime": "2026-01-14T13:54:21.345768700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T13:54:42.013669100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:63768",
+    "dateTime": "2026-01-14T15:08:59.410798700"
+  },
+  {
+    "actionType": "CHAT_REQUESTED",
+    "description": "User admin requested chat from branch ALL",
+    "dateTime": "2026-01-14T15:09:06.051430100"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T15:09:12.930533200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:53832",
+    "dateTime": "2026-01-14T15:53:08.628459400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-14T15:53:25.017838600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:59456",
+    "dateTime": "2026-01-17T19:29:58.307586800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-17T19:30:45.330375800"
   }
 ]

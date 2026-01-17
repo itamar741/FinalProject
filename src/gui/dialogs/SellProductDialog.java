@@ -180,14 +180,79 @@ public class SellProductDialog extends JDialog {
     }
     
     private void calculatePrice() {
-        // TODO: חישוב מחיר לפי סוג לקוח
-        // נצטרך להוסיף פקודה GET_PRODUCT_PRICE או לחשב באופן מקומי
-        // בינתיים, נציג הודעה
-        JOptionPane.showMessageDialog(this,
-                "חישוב המחיר יוטמע בעתיד.\n" +
-                "המחיר הסופי יחושב לפי סוג הלקוח בעת ביצוע המכירה.",
-                "מידע",
-                JOptionPane.INFORMATION_MESSAGE);
+        String productId = productIdField.getText().trim();
+        String quantityStr = quantityField.getText().trim();
+        String customerId = customerIdField.getText().trim();
+        
+        // ולידציה
+        if (productId.isEmpty() || quantityStr.isEmpty() || customerId.isEmpty()) {
+            JOptionPane.showMessageDialog(this,
+                    "אנא מלא את קוד המוצר, כמות ות.ז. לקוח לחישוב המחיר",
+                    "שגיאה",
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            int quantity = Integer.parseInt(quantityStr);
+            if (quantity <= 0) {
+                JOptionPane.showMessageDialog(this,
+                        "כמות חייבת להיות גדולה מ-0",
+                        "שגיאה",
+                        JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            String command = "CALCULATE_PRICE;" + productId + ";" + quantity + ";" + customerId;
+            String response = connection.sendCommand(command);
+            
+            if (response == null) {
+                JOptionPane.showMessageDialog(this,
+                        "אין תגובה מהשרת",
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            response = response.trim();
+            
+            if (response.startsWith("OK;")) {
+                String priceStr = response.substring(3);
+                try {
+                    double finalPrice = Double.parseDouble(priceStr);
+                    priceLabel.setText(String.format("%.2f ₪", finalPrice));
+                    priceLabel.setForeground(Color.BLUE);
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(this,
+                            "תגובה לא תקינה מהשרת: " + priceStr,
+                            "שגיאה",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } else if (response.startsWith("ERROR") || response.startsWith("AUTH_ERROR")) {
+                String errorMsg = response.contains(";") ? response.split(";", 2)[1] : response;
+                JOptionPane.showMessageDialog(this,
+                        "שגיאה בחישוב מחיר:\n" + errorMsg,
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+                priceLabel.setText("0.00 ₪");
+                priceLabel.setForeground(Color.BLACK);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "תגובה לא מוכרת מהשרת: " + response,
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "כמות חייבת להיות מספר",
+                    "שגיאה",
+                    JOptionPane.WARNING_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                    "שגיאה בתקשורת: " + e.getMessage(),
+                    "שגיאה",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
     
     private void performSale() {

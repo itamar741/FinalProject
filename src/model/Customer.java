@@ -23,6 +23,14 @@ public abstract class Customer {
     public String getPhone() {
         return phone;
     }
+    
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+    
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
     public abstract double calculatePrice(double basePrice);
 }

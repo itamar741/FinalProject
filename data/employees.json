@@ -1,0 +1,12 @@
+{
+  "1": {
+    "fullName": "איתמר",
+    "idNumber": "123456789",
+    "phone": "0",
+    "bankAccount": "0",
+    "employeeNumber": "1",
+    "role": "קופאי",
+    "branchId": "B1",
+    "active": true
+  }
+}

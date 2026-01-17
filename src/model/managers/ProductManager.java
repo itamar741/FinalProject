@@ -53,5 +53,12 @@ public class ProductManager {
             products.put(product.getProductId(), product);
         }
     }
+    
+    /**
+     * מחיקת מוצר מהמערכת
+     */
+    public void deleteProduct(String productId) {
+        products.remove(productId);
+    }
 
 }
