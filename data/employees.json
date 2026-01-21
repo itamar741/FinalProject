@@ -1,11 +1,41 @@
 {
   "1": {
-    "fullName": "איתמר",
-    "idNumber": "123456789",
-    "phone": "0",
-    "bankAccount": "0",
+    "fullName": "manager1B1",
+    "idNumber": "111111111",
+    "phone": "1111111111",
+    "bankAccount": "1",
     "employeeNumber": "1",
-    "role": "קופאי",
+    "role": "manager",
+    "branchId": "B1",
+    "active": true
+  },
+  "2": {
+    "fullName": "manager2B2",
+    "idNumber": "222222222",
+    "phone": "2222222222",
+    "bankAccount": "2",
+    "employeeNumber": "2",
+    "role": "manager",
+    "branchId": "B2",
+    "active": true
+  },
+  "3": {
+    "fullName": "cashier1B1",
+    "idNumber": "333333333",
+    "phone": "1111111111",
+    "bankAccount": "1",
+    "employeeNumber": "3",
+    "role": "cashier",
+    "branchId": "B1",
+    "active": true
+  },
+  "4": {
+    "fullName": "salesman1b1",
+    "idNumber": "444444444",
+    "phone": "4444444444",
+    "bankAccount": "4",
+    "employeeNumber": "4",
+    "role": "salesman",
     "branchId": "B1",
     "active": true
   }

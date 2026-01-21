@@ -5,12 +5,13 @@ import gui.MainWindow;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * דיאלוג להוספת לקוח חדש
+ * Dialog for adding a new customer.
+ * Allows selecting customer type (NEW, RETURNING, VIP).
+ * 
+ * @author FinalProject
  */
 public class AddCustomerDialog extends JDialog {
     

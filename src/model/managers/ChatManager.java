@@ -11,37 +11,45 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
- * מנהל מערכת הצ'אט - ניהול צ'אטים פעילים, תורים, ומצבי משתמשים
- * משתמש ב-Queue Pattern (Producer-Consumer) לניהול תור בקשות
+ * Manages the chat system - active chats, request queues, and user statuses.
+ * Implements the Queue Pattern (Producer-Consumer) for managing chat request queues.
+ * Uses FIFO (First In First Out) ordering to ensure fair matching between users from different branches.
+ * Thread-safe implementation using ConcurrentHashMap and LinkedBlockingQueue.
+ * 
+ * @author FinalProject
  */
 public class ChatManager {
     
-    // צ'אטים פעילים: chatId -> ChatSession
+    /** Active chat sessions: chatId -> ChatSession */
     private Map<String, ChatSession> activeChats;
     
-    // תור בקשות (FIFO)
+    /** Request queue (FIFO) for matching users from different branches */
     private Queue<ChatRequest> chatQueue;
     
-    // מצב משתמשים: username -> ChatUserStatus
+    /** User statuses: username -> ChatUserStatus */
     private Map<String, ChatUserStatus> userStatus;
     
-    // בקשות ממתינות: requestId -> ChatRequest
+    /** Pending requests: requestId -> ChatRequest */
     private Map<String, ChatRequest> pendingRequests;
     
-    // הודעות צ'אט: chatId -> List<ChatMessage>
+    /** Chat messages: chatId -> List<ChatMessage> */
     private Map<String, List<ChatMessage>> chatMessages;
     
-    // username -> chatId (למציאת צ'אט של משתמש)
+    /** User to chat mapping: username -> chatId (for finding user's active chat) */
     private Map<String, String> userToChat;
     
-    // בקשות ממתינות לפי סניף: branchId -> Queue<ChatRequest>
+    /** Waiting requests by branch: branchId -> Queue<ChatRequest> */
     private Map<String, Queue<ChatRequest>> waitingForUser;
     
     private SessionManager sessionManager;
-    private EmployeeManager employeeManager;
     private int chatIdCounter;
     
-    public ChatManager(SessionManager sessionManager, EmployeeManager employeeManager) {
+    /**
+     * Constructs a new ChatManager.
+     * 
+     * @param sessionManager the session manager for accessing active sessions
+     */
+    public ChatManager(SessionManager sessionManager) {
         this.activeChats = new ConcurrentHashMap<>();
         this.chatQueue = new LinkedBlockingQueue<>();
         this.userStatus = new ConcurrentHashMap<>();
@@ -50,15 +58,19 @@ public class ChatManager {
         this.userToChat = new ConcurrentHashMap<>();
         this.waitingForUser = new ConcurrentHashMap<>();
         this.sessionManager = sessionManager;
-        this.employeeManager = employeeManager;
         this.chatIdCounter = 1;
     }
     
     /**
-     * משתמש מבקש צ'אט - נוסף לתור
+     * User requests a chat - added to queue.
+     * Attempts immediate matching; if no match found, request is queued for the requester's branch.
+     * 
+     * @param requesterUsername the username of the user requesting the chat
+     * @param requesterBranchId the branch ID of the requester
+     * @return "OK;MATCHED;chatId;user1;user2" if matched, "OK;QUEUE;requestId" if queued, "ERROR;..." on failure
      */
     public String requestChat(String requesterUsername, String requesterBranchId) {
-        // בדיקה אם המשתמש כבר בשיחה או בתור
+        // Check if user is already in a chat or in queue
         ChatUserStatus currentStatus = userStatus.get(requesterUsername);
         if (currentStatus == ChatUserStatus.IN_CHAT) {
             return "ERROR;User is already in a chat";
@@ -67,37 +79,40 @@ public class ChatManager {
             return "ERROR;User is already in queue";
         }
         
-        // יצירת בקשה חדשה
+        // Create new request
         String requestId = "REQ_" + System.currentTimeMillis() + "_" + chatIdCounter++;
         ChatRequest request = new ChatRequest(requestId, requesterUsername, requesterBranchId);
         
-        // הוספה לתור
+        // Add to queue
         chatQueue.offer(request);
         pendingRequests.put(requestId, request);
         userStatus.put(requesterUsername, ChatUserStatus.IN_QUEUE);
         
-        // ניסיון התאמה מיידית
+        // Attempt immediate matching
         String matchResult = matchUsers();
         if (matchResult != null && !matchResult.startsWith("ERROR")) {
-            return matchResult; // נמצאה התאמה
+            return matchResult; // Match found
         }
         
-        // אם לא נמצאה התאמה, נשמור את הבקשה בתור של הסניף
+        // If no match found, save request to branch queue
         waitingForUser.computeIfAbsent(requesterBranchId, k -> new LinkedBlockingQueue<>()).offer(request);
         
-        return "OK;QUEUE;" + requestId; // נוסף לתור
+        return "OK;QUEUE;" + requestId; // Added to queue
     }
     
     /**
-     * התאמה בין משתמשים בתור (FIFO, רק מסניפים שונים)
-     * נקרא אוטומטית אחרי כל בקשה חדשה
+     * Matches users in queue (FIFO, only from different branches).
+     * Called automatically after each new request.
+     * Implements FIFO matching algorithm: takes first pending request, finds available user from different branch.
+     * 
+     * @return "OK;MATCHED;chatId;user1;user2" if match found, null if no match available
      */
     public String matchUsers() {
         if (chatQueue.isEmpty()) {
-            return null; // אין בקשות בתור
+            return null; // No requests in queue
         }
         
-        // נסה למצוא בקשה ראשונה בתור (FIFO)
+        // Find first pending request in queue (FIFO)
         ChatRequest req1 = null;
         for (ChatRequest req : chatQueue) {
             if (req.getStatus() == ChatRequest.RequestStatus.PENDING) {
@@ -107,10 +122,10 @@ public class ChatManager {
         }
         
         if (req1 == null) {
-            return null; // אין בקשות ממתינות
+            return null; // No pending requests
         }
         
-        // מציאת משתמש פנוי מסניף אחר
+        // Find available user from different branch
         String matchedUsername = null;
         String matchedBranchId = null;
         
@@ -119,7 +134,7 @@ public class ChatManager {
             String username = session.getUsername();
             String branchId = session.getBranchId();
             
-            // רק מסניף אחר ופנוי
+            // Only from different branch and available
             if (!branchId.equals(req1.getRequesterBranchId()) && 
                 getUserStatus(username) == ChatUserStatus.AVAILABLE) {
                 matchedUsername = username;
@@ -129,28 +144,28 @@ public class ChatManager {
         }
         
         if (matchedUsername == null) {
-            return null; // לא נמצא משתמש פנוי מסניף אחר
+            return null; // No available user from different branch found
         }
         
-        // יצירת צ'אט חדש
+        // Create new chat
         String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
         ChatSession session = new ChatSession(chatId, req1.getRequesterUsername(), matchedUsername);
         activeChats.put(chatId, session);
         
-        // עדכון מצב משתמשים
+        // Update user statuses
         userStatus.put(req1.getRequesterUsername(), ChatUserStatus.IN_CHAT);
         userStatus.put(matchedUsername, ChatUserStatus.IN_CHAT);
         userToChat.put(req1.getRequesterUsername(), chatId);
         userToChat.put(matchedUsername, chatId);
         
-        // עדכון סטטוס בקשה
+        // Update request status
         req1.setStatus(ChatRequest.RequestStatus.MATCHED);
         
-        // הסרה מתור
+        // Remove from queue
         chatQueue.remove(req1);
         pendingRequests.remove(req1.getRequestId());
         
-        // הסרה מתור הסניף
+        // Remove from branch queue
         Queue<ChatRequest> branchQueue = waitingForUser.get(req1.getRequesterBranchId());
         if (branchQueue != null) {
             branchQueue.remove(req1);
@@ -159,12 +174,12 @@ public class ChatManager {
             }
         }
         
-        // יצירת רשימת הודעות ריקה
+        // Create empty message list
         chatMessages.put(chatId, new ArrayList<>());
         
-        // הודעת מערכת
+        // System message
         ChatMessage systemMsg = new ChatMessage(chatId, "SYSTEM", 
-            "צ'אט התחיל בין " + req1.getRequesterUsername() + " ו-" + matchedUsername,
+            "Chat started between " + req1.getRequesterUsername() + " and " + matchedUsername,
             ChatMessage.MessageType.SYSTEM);
         chatMessages.get(chatId).add(systemMsg);
         
@@ -172,7 +187,12 @@ public class ChatManager {
     }
     
     /**
-     * יצירת צ'אט חדש (ישירות, ללא תור)
+     * Creates a new chat session directly (without queue).
+     * Used for direct chat creation, e.g., when a manager accepts a request.
+     * 
+     * @param user1 the first participant's username
+     * @param user2 the second participant's username
+     * @return the chat ID of the created session
      */
     public String createChatSession(String user1, String user2) {
         String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
@@ -190,7 +210,13 @@ public class ChatManager {
     }
     
     /**
-     * הוספת הודעה לצ'אט
+     * Adds a message to a chat.
+     * Validates that the chat is active and the sender is a participant.
+     * 
+     * @param chatId the chat ID
+     * @param sender the sender's username
+     * @param message the message content
+     * @throws IllegalArgumentException if chat not found, not active, or sender is not a participant
      */
     public void addMessage(String chatId, String sender, String message) {
         ChatSession session = activeChats.get(chatId);
@@ -207,7 +233,10 @@ public class ChatManager {
     }
     
     /**
-     * סיום צ'אט
+     * Ends a chat session.
+     * Updates user statuses to AVAILABLE and attempts to match waiting users.
+     * 
+     * @param chatId the chat ID to end
      */
     public void endChat(String chatId) {
         ChatSession session = activeChats.get(chatId);
@@ -217,84 +246,70 @@ public class ChatManager {
         
         session.end();
         
-        // עדכון מצב משתמשים
+        // Update user statuses
         for (String username : session.getParticipants()) {
             userStatus.put(username, ChatUserStatus.AVAILABLE);
             userToChat.remove(username);
         }
         
-        // ניסיון התאמה חדשה למשתמשים בתור
+        // Attempt new matching for users in queue
         matchUsers();
     }
     
     /**
-     * מנהל מצטרף לצ'אט
+     * User joins an existing chat.
+     * Verifies that the user has permission to join (admin or manager role).
+     * 
+     * @param chatId the chat ID to join
+     * @param username the username of the user joining
+     * @throws IllegalArgumentException if chat not found, not active, or user does not have permission
      */
-    public void joinChatAsManager(String chatId, String managerUsername) {
+    public void joinChatAsManager(String chatId, String username) {
         ChatSession session = activeChats.get(chatId);
         if (session == null || !session.isActive()) {
             throw new IllegalArgumentException("Chat not found or not active: " + chatId);
         }
         
-        // בדיקה שהמשתמש הוא מנהל
-        try {
-            Session userSession = sessionManager.getSessionByUsername(managerUsername);
-            if (userSession == null) {
-                throw new IllegalArgumentException("User not logged in: " + managerUsername);
-            }
-            
-            Employee employee = employeeManager.getEmployee(userSession.getEmployeeNumber());
-            if (!"manager".equals(employee.getRole())) {
-                throw new IllegalArgumentException("User is not a manager: " + managerUsername);
-            }
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Cannot verify manager role: " + e.getMessage());
+        // Verify user has permission to join (admin or manager)
+        Session userSession = sessionManager.getSessionByUsername(username);
+        if (userSession == null) {
+            throw new IllegalArgumentException("User not logged in: " + username);
         }
         
-        // הוספת מנהל לצ'אט
-        session.addParticipant(managerUsername);
-        userStatus.put(managerUsername, ChatUserStatus.IN_CHAT);
-        userToChat.put(managerUsername, chatId);
+        String role = userSession.getRole();
+        if (!"admin".equals(role) && !"manager".equals(role)) {
+            throw new IllegalArgumentException("User does not have permission to join existing chats: " + username);
+        }
         
-        // הודעת מערכת
+        // Add user to chat
+        session.addParticipant(username);
+        userStatus.put(username, ChatUserStatus.IN_CHAT);
+        userToChat.put(username, chatId);
+        
+        // System message
+        String roleLabel = "admin".equals(role) ? "Admin" : "Shift manager";
         ChatMessage systemMsg = new ChatMessage(chatId, "SYSTEM",
-            "מנהל משמרת " + managerUsername + " הצטרף לצ'אט",
+            roleLabel + " " + username + " joined the chat",
             ChatMessage.MessageType.SYSTEM);
         chatMessages.get(chatId).add(systemMsg);
     }
     
     /**
-     * בדיקת מצב משתמש
+     * Gets the current status of a user in the chat system.
+     * 
+     * @param username the username to check
+     * @return the user's chat status, or AVAILABLE if not found
      */
     public ChatUserStatus getUserStatus(String username) {
         return userStatus.getOrDefault(username, ChatUserStatus.AVAILABLE);
     }
     
     /**
-     * רשימת משתמשים פנויים מסניף אחר
-     */
-    public List<String> getAvailableUsers(String excludeBranchId) {
-        List<String> available = new ArrayList<>();
-        
-        // קבלת כל הסשנים הפעילים
-        Map<String, Session> allSessions = sessionManager.getAllActiveSessions();
-        
-        for (Session session : allSessions.values()) {
-            String username = session.getUsername();
-            String branchId = session.getBranchId();
-            
-            // רק מסניף אחר ופנוי
-            if (!branchId.equals(excludeBranchId) && 
-                getUserStatus(username) == ChatUserStatus.AVAILABLE) {
-                available.add(username);
-            }
-        }
-        
-        return available;
-    }
-    
-    /**
-     * היסטוריית צ'אט
+     * Gets the chat history (all messages) for a specific chat.
+     * Returns a defensive copy to prevent external modification.
+     * 
+     * @param chatId the chat ID
+     * @return a list of chat messages, or empty list if chat not found
      */
     public List<ChatMessage> getChatHistory(String chatId) {
         List<ChatMessage> messages = chatMessages.get(chatId);
@@ -305,7 +320,10 @@ public class ChatManager {
     }
     
     /**
-     * קבלת צ'אט של משתמש
+     * Gets the active chat session for a user.
+     * 
+     * @param username the username to check
+     * @return the ChatSession if user is in a chat, null otherwise
      */
     public ChatSession getUserChat(String username) {
         String chatId = userToChat.get(username);
@@ -316,7 +334,11 @@ public class ChatManager {
     }
     
     /**
-     * ביטול בקשה בתור
+     * Cancels a chat request in the queue.
+     * Removes the request from both the main queue and the branch queue.
+     * 
+     * @param username the username whose request to cancel
+     * @return true if request was found and cancelled, false otherwise
      */
     public boolean cancelChatRequest(String username) {
         ChatUserStatus status = userStatus.get(username);
@@ -324,7 +346,7 @@ public class ChatManager {
             return false;
         }
         
-        // מציאת הבקשה בתור
+        // Find the request in queue
         ChatRequest toRemove = null;
         for (ChatRequest req : chatQueue) {
             if (req.getRequesterUsername().equals(username) && 
@@ -339,7 +361,7 @@ public class ChatManager {
             pendingRequests.remove(toRemove.getRequestId());
             toRemove.setStatus(ChatRequest.RequestStatus.CANCELLED);
             
-            // הסרה מתור הסניף
+            // Remove from branch queue
             Queue<ChatRequest> branchQueue = waitingForUser.get(toRemove.getRequesterBranchId());
             if (branchQueue != null) {
                 branchQueue.remove(toRemove);
@@ -356,14 +378,20 @@ public class ChatManager {
     }
     
     /**
-     * קבלת כל הצ'אטים הפעילים (לצורך ניהול/דיבוג)
+     * Gets all active chat sessions (for management/debugging).
+     * Returns a defensive copy to prevent external modification.
+     * 
+     * @return a Map of chatId to ChatSession
      */
     public Map<String, ChatSession> getAllActiveChats() {
         return new HashMap<>(activeChats);
     }
     
     /**
-     * בדיקה אם משתמש יכול לבקש צ'אט
+     * Checks if a user can request a chat (is available).
+     * 
+     * @param username the username to check
+     * @return true if user is available, false otherwise
      */
     public boolean canRequestChat(String username) {
         ChatUserStatus status = userStatus.getOrDefault(username, ChatUserStatus.AVAILABLE);
@@ -371,14 +399,18 @@ public class ChatManager {
     }
     
     /**
-     * קבלת רשימת בקשות ממתינות לסניף מסוים
+     * Gets the list of waiting requests for a specific branch.
+     * Used to notify available employees in a branch about pending requests from other branches.
+     * 
+     * @param branchId the branch ID to get requests for
+     * @return a list of pending ChatRequests, or empty list if none
      */
     public List<ChatRequest> getWaitingRequestsForBranch(String branchId) {
         Queue<ChatRequest> queue = waitingForUser.get(branchId);
         if (queue == null || queue.isEmpty()) {
             return new ArrayList<>();
         }
-        // מחזירים רשימה של בקשות ממתינות (PENDING)
+        // Return list of pending requests (PENDING status)
         List<ChatRequest> result = new ArrayList<>();
         for (ChatRequest req : queue) {
             if (req.getStatus() == ChatRequest.RequestStatus.PENDING) {
@@ -389,11 +421,16 @@ public class ChatManager {
     }
     
     /**
-     * משתמש מאשר בקשה לצ'אט
-     * הבקשה נמצאת בתור של הסניף של המבקש (לא של המאשר)
+     * User accepts a chat request.
+     * The request is located in the queue of the requester's branch (not the acceptor's branch).
+     * Searches all other branch queues to find the request.
+     * 
+     * @param acceptingUsername the username of the user accepting the request
+     * @param requestId the request ID to accept
+     * @return "OK;MATCHED;chatId;requester;acceptor" if successful, "ERROR;..." on failure
      */
     public String acceptChatRequest(String acceptingUsername, String requestId) {
-        // בדיקה שהמשתמש פנוי
+        // Check that user is available
         if (getUserStatus(acceptingUsername) != ChatUserStatus.AVAILABLE) {
             return "ERROR;User is not available";
         }
@@ -405,13 +442,13 @@ public class ChatManager {
         
         String acceptingBranchId = acceptingSession.getBranchId();
         
-        // חיפוש הבקשה בכל התורים (הבקשה נמצאת בתור של הסניף של המבקש)
+        // Search for request in all queues (request is in requester's branch queue)
         ChatRequest request = null;
         String requesterBranchId = null;
         
         for (Map.Entry<String, Queue<ChatRequest>> entry : waitingForUser.entrySet()) {
             String branchId = entry.getKey();
-            // רק תורים של סניפים אחרים
+            // Only queues from other branches
             if (!branchId.equals(acceptingBranchId)) {
                 Queue<ChatRequest> branchQueue = entry.getValue();
                 for (ChatRequest req : branchQueue) {
@@ -430,9 +467,9 @@ public class ChatManager {
             return "ERROR;Request not found or already processed";
         }
         
-        // בדיקה שהמבקש עדיין בתור
+        // Check that requester is still in queue
         if (getUserStatus(request.getRequesterUsername()) != ChatUserStatus.IN_QUEUE) {
-            // המבקש כבר לא בתור - נסיר את הבקשה
+            // Requester is no longer in queue - remove the request
             Queue<ChatRequest> branchQueue = waitingForUser.get(requesterBranchId);
             if (branchQueue != null) {
                 branchQueue.remove(request);
@@ -443,25 +480,25 @@ public class ChatManager {
             return "ERROR;Requester is no longer in queue";
         }
         
-        // יצירת צ'אט
+        // Create chat
         String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
         ChatSession session = new ChatSession(chatId, request.getRequesterUsername(), acceptingUsername);
         activeChats.put(chatId, session);
         
-        // עדכון מצב משתמשים
+        // Update user statuses
         userStatus.put(request.getRequesterUsername(), ChatUserStatus.IN_CHAT);
         userStatus.put(acceptingUsername, ChatUserStatus.IN_CHAT);
         userToChat.put(request.getRequesterUsername(), chatId);
         userToChat.put(acceptingUsername, chatId);
         
-        // עדכון סטטוס בקשה
+        // Update request status
         request.setStatus(ChatRequest.RequestStatus.MATCHED);
         
-        // הסרה מתור
+        // Remove from queue
         chatQueue.remove(request);
         pendingRequests.remove(request.getRequestId());
         
-        // הסרה מתור הסניף
+        // Remove from branch queue
         Queue<ChatRequest> branchQueue = waitingForUser.get(requesterBranchId);
         if (branchQueue != null) {
             branchQueue.remove(request);
@@ -470,29 +507,15 @@ public class ChatManager {
             }
         }
         
-        // יצירת רשימת הודעות ריקה
+        // Create empty message list
         chatMessages.put(chatId, new ArrayList<>());
         
-        // הודעת מערכת
+        // System message
         ChatMessage systemMsg = new ChatMessage(chatId, "SYSTEM",
-            "צ'אט התחיל בין " + request.getRequesterUsername() + " ו-" + acceptingUsername,
+            "Chat started between " + request.getRequesterUsername() + " and " + acceptingUsername,
             ChatMessage.MessageType.SYSTEM);
         chatMessages.get(chatId).add(systemMsg);
         
         return "OK;MATCHED;" + chatId + ";" + request.getRequesterUsername() + ";" + acceptingUsername;
-    }
-    
-    /**
-     * מציאת הסניף השני (יש רק שני סניפים)
-     */
-    private String getOtherBranchId(String currentBranchId) {
-        Map<String, Session> allSessions = sessionManager.getAllActiveSessions();
-        for (Session session : allSessions.values()) {
-            String branchId = session.getBranchId();
-            if (!branchId.equals(currentBranchId)) {
-                return branchId;
-            }
-        }
-        return null;
     }
 }

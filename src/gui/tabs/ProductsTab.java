@@ -8,36 +8,42 @@ import gui.dialogs.SellProductDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * טאב לניהול מוצרים ומלאי
- * לאדמין: טאבים פנימיים לכל סניף (B1, B2)
- * לעובד: רק טאב אחד לסניף שלו
+ * Tab for managing products and inventory.
+ * For admin: internal tabs for each branch (B1, B2).
+ * For employee: only one tab for their branch.
+ * 
+ * @author FinalProject
  */
 public class ProductsTab extends JPanel {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
-    private String userType;
+    private String role;
     private String branchId;
-    private String employeeNumber;
     
-    private JTabbedPane branchTabsPane;  // טאבים פנימיים לכל סניף
+    private JTabbedPane branchTabsPane;  // Internal tabs for each branch
     private JButton addToInventoryButton;
     private JButton sellButton;
     private JButton removeFromInventoryButton;
     private JButton deleteProductButton;  // Admin only
     private JButton refreshButton;
     
-    public ProductsTab(ClientConnection connection, MainWindow mainWindow, String userType, String branchId) {
+    /**
+     * Constructs a new ProductsTab.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     * @param role the user's role (admin, manager, salesman, cashier)
+     * @param branchId the branch ID where the user works
+     */
+    public ProductsTab(ClientConnection connection, MainWindow mainWindow, String role, String branchId) {
         this.connection = connection;
         this.mainWindow = mainWindow;
-        this.userType = userType;
+        this.role = role;
         this.branchId = branchId;
-        this.employeeNumber = mainWindow.getEmployeeNumber();
         
         setLayout(new BorderLayout());
         createUI();
@@ -68,7 +74,7 @@ public class ProductsTab extends JPanel {
         buttonPanel.add(removeFromInventoryButton);
         
         // כפתור מחק מוצר (Admin only)
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             deleteProductButton = new JButton("מחק מוצר");
             deleteProductButton.addActionListener(e -> deleteSelectedProduct());
             buttonPanel.add(deleteProductButton);
@@ -84,7 +90,7 @@ public class ProductsTab extends JPanel {
         branchTabsPane = new JTabbedPane();
         branchTabsPane.setTabPlacement(JTabbedPane.TOP);
         
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             // לאדמין: 2 טאבים (B1, B2)
             BranchInventoryPanel b1Panel = new BranchInventoryPanel("B1");
             branchTabsPane.addTab("מלאי סניף B1", b1Panel);
@@ -201,7 +207,7 @@ public class ProductsTab extends JPanel {
     }
     
     private void showAddToInventoryDialog() {
-        AddToInventoryDialog dialog = new AddToInventoryDialog(mainWindow, connection, userType, branchId);
+        AddToInventoryDialog dialog = new AddToInventoryDialog(mainWindow, connection, role, branchId);
         dialog.setVisible(true);
         refreshAllTabs();
     }
@@ -217,7 +223,7 @@ public class ProductsTab extends JPanel {
         }
         
         String selectedBranchId = currentPanel.getBranchId();
-        SellProductDialog dialog = new SellProductDialog(mainWindow, connection, userType, selectedBranchId, employeeNumber);
+        SellProductDialog dialog = new SellProductDialog(mainWindow, connection, role, selectedBranchId);
         dialog.setVisible(true);
         refreshAllTabs();
     }

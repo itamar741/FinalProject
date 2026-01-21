@@ -8,13 +8,17 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג להוספת מוצר למלאי
+ * Dialog for adding a product to inventory.
+ * For admin: allows selecting branch. For employee: uses their branch.
+ * Product must already exist in catalog.
+ * 
+ * @author FinalProject
  */
 public class AddToInventoryDialog extends JDialog {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
-    private String userType;
+    private String role;
     private String branchId;
     
     private JTextField productIdField;
@@ -27,11 +31,11 @@ public class AddToInventoryDialog extends JDialog {
     private JButton saveButton;
     private JButton cancelButton;
     
-    public AddToInventoryDialog(MainWindow parent, ClientConnection connection, String userType, String branchId) {
+    public AddToInventoryDialog(MainWindow parent, ClientConnection connection, String role, String branchId) {
         super(parent, "הוספת מוצר למלאי", true);
         this.connection = connection;
         this.mainWindow = parent;
-        this.userType = userType;
+        this.role = role;
         this.branchId = branchId;
         
         setSize(400, 350);
@@ -125,7 +129,7 @@ public class AddToInventoryDialog extends JDialog {
         mainPanel.add(quantityField, gbc);
         
         // סניף (רק אם Admin)
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             gbc.gridx = 0;
             gbc.gridy = 6;
             gbc.fill = GridBagConstraints.NONE;
@@ -180,7 +184,7 @@ public class AddToInventoryDialog extends JDialog {
     private void saveToInventory() {
         String productId = productIdField.getText().trim();
         String quantityStr = quantityField.getText().trim();
-        String selectedBranchId = userType.equals("ADMIN") ? 
+        String selectedBranchId = "admin".equals(role) ? 
                 (String) branchCombo.getSelectedItem() : branchId;
         
         boolean isNewProduct = newProductCheckBox.isSelected();

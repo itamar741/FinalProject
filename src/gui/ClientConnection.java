@@ -41,7 +41,8 @@ public class ClientConnection {
     }
     
     /**
-     * התנתקות מהשרת
+     * Disconnects from the server.
+     * Sends EXIT command and closes all streams and socket.
      */
     public void disconnect() {
         connected = false;
@@ -65,7 +66,11 @@ public class ClientConnection {
     }
     
     /**
-     * שליחת פקודה לשרת וקבלת תגובה
+     * Sends a command to the server and receives a response.
+     * 
+     * @param command the command string to send (format: "COMMAND;param1;param2;...")
+     * @return the response string from the server
+     * @throws IOException if not connected, server disconnected, or communication error
      */
     public String sendCommand(String command) throws IOException {
         if (!connected || socket == null || socket.isClosed()) {
@@ -88,7 +93,12 @@ public class ClientConnection {
     }
     
     /**
-     * התחברות עם שם משתמש וסיסמה
+     * Logs in with username and password.
+     * 
+     * @param username the username
+     * @param password the password
+     * @return the server response (format: "LOGIN_SUCCESS;role;branchId" or "AUTH_ERROR;...")
+     * @throws IOException if communication error occurs
      */
     public String login(String username, String password) throws IOException {
         String command = "LOGIN;" + username + ";" + password;
@@ -96,14 +106,19 @@ public class ClientConnection {
     }
     
     /**
-     * התנתקות
+     * Logs out from the server.
+     * 
+     * @return the server response
+     * @throws IOException if communication error occurs
      */
     public String logout() throws IOException {
         return sendCommand("LOGOUT");
     }
     
     /**
-     * בדיקה אם מחובר לשרת
+     * Checks if connected to the server.
+     * 
+     * @return true if connected and socket is open, false otherwise
      */
     public boolean isConnected() {
         return connected && socket != null && !socket.isClosed();

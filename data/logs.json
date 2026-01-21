@@ -443,5 +443,370 @@
     "actionType": "LOGOUT",
     "description": "User admin logged out",
     "dateTime": "2026-01-17T19:30:45.330375800"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:63450",
+    "dateTime": "2026-01-19T18:28:47.762149900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-19T18:43:49.401412200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (ADMIN) logged in from /127.0.0.1:64374",
+    "dateTime": "2026-01-19T18:52:49.487228900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:50153",
+    "dateTime": "2026-01-21T14:29:13.144350500"
+  },
+  {
+    "actionType": "DELETE_EMPLOYEE",
+    "description": "Employee deleted: 1",
+    "dateTime": "2026-01-21T14:29:34.130346400"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:62531",
+    "dateTime": "2026-01-21T14:32:37.330133"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T14:34:43.796506800"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:60546",
+    "dateTime": "2026-01-21T14:36:21.990841"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: new, number=1, role=manager, branch=B1",
+    "dateTime": "2026-01-21T14:36:42.199288900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T14:51:33.945606600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:62279",
+    "dateTime": "2026-01-21T14:51:55.190233400"
+  },
+  {
+    "actionType": "DELETE_EMPLOYEE",
+    "description": "Employee deleted: 1",
+    "dateTime": "2026-01-21T14:52:06.152139500"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: new, role=manager, branch=B1",
+    "dateTime": "2026-01-21T14:52:35.587863900"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: new, number=1, role=manager, branch=B1, username=new",
+    "dateTime": "2026-01-21T14:52:35.594445"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T15:00:13.596730500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:62839",
+    "dateTime": "2026-01-21T15:06:38.863523500"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: manager1B1, role=manager, branch=B1",
+    "dateTime": "2026-01-21T15:08:09.648489200"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: manager1B1, number=1, role=manager, branch=B1, username=manager1B1",
+    "dateTime": "2026-01-21T15:08:09.655403800"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: manager2b2, role=manager, branch=B2",
+    "dateTime": "2026-01-21T15:08:44.334836600"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: manager2B2, number=2, role=manager, branch=B2, username=manager2b2",
+    "dateTime": "2026-01-21T15:08:44.338096700"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: cashier1b1, role=cashier, branch=B1",
+    "dateTime": "2026-01-21T15:09:47.839063900"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: cashier1B1, number=3, role=cashier, branch=B1, username=cashier1b1",
+    "dateTime": "2026-01-21T15:09:47.842615500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T15:10:36.165087600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User manager1B1 (manager) logged in from /127.0.0.1:55304",
+    "dateTime": "2026-01-21T15:10:59.769801800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User manager1B1 logged out",
+    "dateTime": "2026-01-21T15:12:18.567485300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User cashier1b1 (cashier) logged in from /127.0.0.1:55764",
+    "dateTime": "2026-01-21T15:12:30.680672400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User cashier1b1 logged out",
+    "dateTime": "2026-01-21T15:21:05.443541700"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User cashier1b1 (cashier) logged in from /127.0.0.1:56879",
+    "dateTime": "2026-01-21T15:23:11.103031100"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: salesman1b1, role=salesman, branch=B1",
+    "dateTime": "2026-01-21T15:23:47.789367700"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: salesman1b1, number=4, role=salesman, branch=B1, username=salesman1b1",
+    "dateTime": "2026-01-21T15:23:47.796353200"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User cashier1b1 logged out",
+    "dateTime": "2026-01-21T15:27:49.447616900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:54821",
+    "dateTime": "2026-01-21T15:28:04.457584800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T15:29:14.434958500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:57981",
+    "dateTime": "2026-01-21T15:29:30.479124500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T15:29:34.203594"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User cashier1b1 (cashier) logged in from /127.0.0.1:58069",
+    "dateTime": "2026-01-21T15:29:44.215952"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User cashier1b1 logged out",
+    "dateTime": "2026-01-21T15:29:49.415348500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:61624",
+    "dateTime": "2026-01-21T15:30:11.650423500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T15:31:13.942204200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:60010",
+    "dateTime": "2026-01-21T15:32:51.298913300"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T15:39:55.115800200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:56682",
+    "dateTime": "2026-01-21T15:47:14.443593200"
+  },
+  {
+    "actionType": "UPDATE_DISCOUNT",
+    "description": "Discount for NEW customers updated to 0.0%",
+    "dateTime": "2026-01-21T15:47:27.854513700"
+  },
+  {
+    "actionType": "UPDATE_DISCOUNT",
+    "description": "Discount for RETURNING customers updated to 8.0%",
+    "dateTime": "2026-01-21T15:47:27.858149800"
+  },
+  {
+    "actionType": "UPDATE_DISCOUNT",
+    "description": "Discount for VIP customers updated to 15.0%",
+    "dateTime": "2026-01-21T15:47:27.861339600"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T15:47:34.018306500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User manager1B1 (manager) logged in from /127.0.0.1:62572",
+    "dateTime": "2026-01-21T15:48:13.581009500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User manager1B1 logged out",
+    "dateTime": "2026-01-21T15:50:37.259483200"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:61149",
+    "dateTime": "2026-01-21T15:50:49.916549900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T15:51:23.812877300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:61470",
+    "dateTime": "2026-01-21T15:51:31.095834400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T16:01:31.523945300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:52865",
+    "dateTime": "2026-01-21T16:04:39.476432900"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 9485033491 (price=70.0), qty=1, basePrice=70.0, finalPrice=64.4, branch=B1, customerId=222222222",
+    "dateTime": "2026-01-21T16:05:06.739393700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T16:05:34.032428500"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:55364",
+    "dateTime": "2026-01-21T16:05:47.779808400"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 9485033491 (price=70.0), qty=1, basePrice=70.0, finalPrice=59.5, branch=B1, customerId=333333333",
+    "dateTime": "2026-01-21T16:06:14.352362500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T16:06:25.213030800"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:56538",
+    "dateTime": "2026-01-21T16:06:33.841185"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T16:19:10.421700700"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:52372",
+    "dateTime": "2026-01-21T16:19:30.472798100"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T16:19:58.596973"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User manager1B1 (manager) logged in from /127.0.0.1:59635",
+    "dateTime": "2026-01-21T16:20:41.798849500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User manager1B1 logged out",
+    "dateTime": "2026-01-21T16:21:38.175914800"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:55216",
+    "dateTime": "2026-01-21T16:21:57.000311900"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T16:22:03.880575"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:56004",
+    "dateTime": "2026-01-21T16:22:26.480296800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T16:22:58.177256100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:53797",
+    "dateTime": "2026-01-21T16:23:34.993784400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T16:23:52.178010900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User salesman1b1 (salesman) logged in from /127.0.0.1:50098",
+    "dateTime": "2026-01-21T16:24:12.069774900"
+  },
+  {
+    "actionType": "SALE",
+    "description": "Sold product 9485033491 (price=70.0), qty=1, basePrice=70.0, finalPrice=59.5, branch=B1, customerId=333333333, customerType=VIP, employeeNumber=4",
+    "dateTime": "2026-01-21T16:24:40.380859"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User salesman1b1 logged out",
+    "dateTime": "2026-01-21T16:34:55.807711100"
   }
 ]

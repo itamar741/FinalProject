@@ -6,8 +6,6 @@ import model.LogEntry;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * טאב לניהול לוגים - רק למנהלים (ADMIN)
+ * Tab for managing system logs (admin only).
+ * Displays logs filtered by action type (employee registration, customer registration, sales, chat details).
+ * Provides option to save chat conversation content to RTF file.
+ * 
+ * @author FinalProject
  */
 public class LogsTab extends JPanel {
     
@@ -32,6 +34,12 @@ public class LogsTab extends JPanel {
     private List<LogEntry> filteredLogs;
     private LogEntry selectedLog;
     
+    /**
+     * Constructs a new LogsTab (admin, manager, salesman).
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
     public LogsTab(ClientConnection connection, MainWindow mainWindow) {
         this.connection = connection;
         this.mainWindow = mainWindow;

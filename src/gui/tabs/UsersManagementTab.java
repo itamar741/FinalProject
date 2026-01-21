@@ -11,7 +11,11 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * טאב לניהול משתמשים (Admin only)
+ * Tab for managing system users (admin only).
+ * Displays users in a table and provides CRUD operations.
+ * Allows creating, updating, activating/deactivating, and deleting users.
+ * 
+ * @author FinalProject
  */
 public class UsersManagementTab extends JPanel {
     
@@ -26,6 +30,12 @@ public class UsersManagementTab extends JPanel {
     private JButton deleteButton;
     private JButton refreshButton;
     
+    /**
+     * Constructs a new UsersManagementTab (admin only).
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
     public UsersManagementTab(ClientConnection connection, MainWindow mainWindow) {
         this.connection = connection;
         this.mainWindow = mainWindow;
@@ -67,7 +77,7 @@ public class UsersManagementTab extends JPanel {
         add(buttonPanel, BorderLayout.NORTH);
         
         // טבלת משתמשים
-        String[] columns = {"שם משתמש", "סוג", "מספר עובד", "סניף", "סטטוס"};
+        String[] columns = {"שם משתמש", "תפקיד", "סניף", "סטטוס"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -115,7 +125,7 @@ public class UsersManagementTab extends JPanel {
         }
         
         String username = (String) tableModel.getValueAt(selectedRow, 0);
-        String status = (String) tableModel.getValueAt(selectedRow, 4);
+        String status = (String) tableModel.getValueAt(selectedRow, 3);
         boolean newStatus = !status.equals("active");
         
         try {
@@ -219,7 +229,7 @@ public class UsersManagementTab extends JPanel {
     }
     
     private void parseAndUpdateTable(String response) {
-        // פורמט: OK;username:type:employeeNumber:branchId:status|username2:type2:...
+        // פורמט: OK;username:role:branchId:status|username2:role2:...
         String[] parts = response.split(";");
         if (parts.length < 2) return;
         
@@ -230,13 +240,12 @@ public class UsersManagementTab extends JPanel {
         for (String user : users) {
             if (user.isEmpty()) continue;
             String[] fields = user.split(":");
-            if (fields.length >= 5) {
+            if (fields.length >= 4) {
                 tableModel.addRow(new Object[]{
                     fields[0],  // username
-                    fields[1],  // type
-                    fields[2],  // employeeNumber
-                    fields[3],  // branchId
-                    fields[4]   // status
+                    fields[1],  // role
+                    fields[2],  // branchId
+                    fields[3]   // status
                 });
             }
         }

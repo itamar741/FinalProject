@@ -11,12 +11,19 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * טאב לניהול עובדים (Admin only)
+ * Tab for managing employees (admin and cashier).
+ * Displays employees in a table and provides CRUD operations.
+ * Admin can view all branches.
+ * Cashier can only view employees from their own branch.
+ * 
+ * @author FinalProject
  */
 public class EmployeesManagementTab extends JPanel {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
+    private String role;
+    private String branchId;
     
     private JTable employeesTable;
     private DefaultTableModel tableModel;
@@ -25,11 +32,20 @@ public class EmployeesManagementTab extends JPanel {
     private JButton activateButton;
     private JButton deleteButton;
     private JButton refreshButton;
-    private JComboBox<String> branchFilterCombo;
     
-    public EmployeesManagementTab(ClientConnection connection, MainWindow mainWindow) {
+    /**
+     * Constructs a new EmployeesManagementTab.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     * @param role the user's role (admin or cashier)
+     * @param branchId the user's branch ID (null for admin)
+     */
+    public EmployeesManagementTab(ClientConnection connection, MainWindow mainWindow, String role, String branchId) {
         this.connection = connection;
         this.mainWindow = mainWindow;
+        this.role = role;
+        this.branchId = branchId;
         
         setLayout(new BorderLayout());
         createUI();
@@ -69,19 +85,17 @@ public class EmployeesManagementTab extends JPanel {
         
         topPanel.add(buttonPanel, BorderLayout.CENTER);
         
-        // פילטר לפי סניף
-        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        filterPanel.add(new JLabel("סניף:"));
-        branchFilterCombo = new JComboBox<>(new String[]{"כל הסניפים", "B1", "B2"});
-        branchFilterCombo.addActionListener(e -> filterByBranch());
-        filterPanel.add(branchFilterCombo);
-        
-        topPanel.add(filterPanel, BorderLayout.NORTH);
+        // הסתר כפתורי ניהול מ-cashier
+        if ("cashier".equals(role)) {
+            updateButton.setVisible(false);
+            activateButton.setVisible(false);
+            deleteButton.setVisible(false);
+        }
         
         add(topPanel, BorderLayout.NORTH);
         
         // טבלת עובדים
-        String[] columns = {"מספר עובד", "שם מלא", "ת.ז.", "טלפון", "תפקיד", "סניף", "סטטוס"};
+        String[] columns = {"מספר עובד", "שם מלא", "ת.ז.", "טלפון", "חשבון בנק", "תפקיד", "סניף", "סטטוס"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -97,7 +111,7 @@ public class EmployeesManagementTab extends JPanel {
     }
     
     private void showCreateEmployeeDialog() {
-        CreateEmployeeDialog dialog = new CreateEmployeeDialog(mainWindow, connection);
+        CreateEmployeeDialog dialog = new CreateEmployeeDialog(mainWindow, connection, role, branchId);
         dialog.setVisible(true);
         refresh();
     }
@@ -129,7 +143,7 @@ public class EmployeesManagementTab extends JPanel {
         }
         
         String employeeNumber = (String) tableModel.getValueAt(selectedRow, 0);
-        String status = (String) tableModel.getValueAt(selectedRow, 6);
+        String status = (String) tableModel.getValueAt(selectedRow, 7);
         boolean newStatus = !status.equals("active");
         
         try {
@@ -194,29 +208,6 @@ public class EmployeesManagementTab extends JPanel {
         }
     }
     
-    private void filterByBranch() {
-        String selectedBranch = (String) branchFilterCombo.getSelectedItem();
-        if (selectedBranch == null || selectedBranch.equals("כל הסניפים")) {
-            refresh();
-            return;
-        }
-        
-        try {
-            String command = "LIST_EMPLOYEES_BY_BRANCH;" + selectedBranch;
-            String response = connection.sendCommand(command);
-            
-            if (response.startsWith("OK")) {
-                parseAndUpdateTable(response);
-                mainWindow.setStatus("מוכן", Color.BLACK);
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "שגיאה בתקשורת: " + e.getMessage(),
-                    "שגיאה",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }
-    
     /**
      * רענון רשימת העובדים
      */
@@ -226,7 +217,13 @@ public class EmployeesManagementTab extends JPanel {
             mainWindow.setStatus("טוען עובדים...");
             
             try {
-                String response = connection.sendCommand("LIST_EMPLOYEES");
+                String response;
+                // Cashier רואה רק את הסניף שלו, Admin רואה הכל
+                if ("cashier".equals(role) && branchId != null) {
+                    response = connection.sendCommand("LIST_EMPLOYEES_BY_BRANCH;" + branchId);
+                } else {
+                    response = connection.sendCommand("LIST_EMPLOYEES");
+                }
                 
                 if (response.startsWith("OK")) {
                     parseAndUpdateTable(response);
@@ -249,7 +246,7 @@ public class EmployeesManagementTab extends JPanel {
     }
     
     private void parseAndUpdateTable(String response) {
-        // פורמט: OK;employeeNumber:fullName:idNumber:phone:role:branchId:status|...
+        // פורמט: OK;employeeNumber:fullName:idNumber:phone:bankAccount:role:branchId:status|...
         String[] parts = response.split(";");
         if (parts.length < 2) return;
         
@@ -260,15 +257,16 @@ public class EmployeesManagementTab extends JPanel {
         for (String employee : employees) {
             if (employee.isEmpty()) continue;
             String[] fields = employee.split(":");
-            if (fields.length >= 7) {
+            if (fields.length >= 8) {
                 tableModel.addRow(new Object[]{
                     fields[0],  // employeeNumber
                     fields[1],  // fullName
                     fields[2],  // idNumber
                     fields[3],  // phone
-                    fields[4],  // role
-                    fields[5],  // branchId
-                    fields[6]   // status
+                    fields[4],  // bankAccount
+                    fields[5],  // role
+                    fields[6],  // branchId
+                    fields[7]   // status
                 });
             }
         }

@@ -8,29 +8,40 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג ליצירת עובד חדש (Admin only)
+ * Dialog for creating a new employee (admin and cashier).
+ * Collects employee details including name, ID, phone, bank account, role, and branch.
+ * Also collects username and password to automatically create a user account for the employee.
+ * Cashier can only create employees for their own branch.
+ * 
+ * @author FinalProject
  */
 public class CreateEmployeeDialog extends JDialog {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
+    private String role;
+    private String branchId;
     
     private JTextField fullNameField;
     private JTextField idNumberField;
     private JTextField phoneField;
     private JTextField bankAccountField;
     private JTextField employeeNumberField;
-    private JTextField roleField;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private JComboBox<String> roleCombo;
     private JComboBox<String> branchCombo;
     private JButton saveButton;
     private JButton cancelButton;
     
-    public CreateEmployeeDialog(MainWindow parent, ClientConnection connection) {
+    public CreateEmployeeDialog(MainWindow parent, ClientConnection connection, String role, String branchId) {
         super(parent, "יצירת עובד חדש", true);
         this.connection = connection;
         this.mainWindow = parent;
+        this.role = role;
+        this.branchId = branchId;
         
-        setSize(450, 400);
+        setSize(450, 500);
         setLocationRelativeTo(parent);
         createUI();
     }
@@ -106,9 +117,35 @@ public class CreateEmployeeDialog extends JDialog {
         employeeNumberField = new JTextField(20);
         mainPanel.add(employeeNumberField, gbc);
         
-        // תפקיד
+        // שם משתמש
         gbc.gridx = 0;
         gbc.gridy = 5;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        mainPanel.add(new JLabel("שם משתמש:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        usernameField = new JTextField(20);
+        mainPanel.add(usernameField, gbc);
+        
+        // סיסמה
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        mainPanel.add(new JLabel("סיסמה:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        passwordField = new JPasswordField(20);
+        mainPanel.add(passwordField, gbc);
+        
+        // תפקיד
+        gbc.gridx = 0;
+        gbc.gridy = 7;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         mainPanel.add(new JLabel("תפקיד:"), gbc);
@@ -116,12 +153,12 @@ public class CreateEmployeeDialog extends JDialog {
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        roleField = new JTextField(20);
-        mainPanel.add(roleField, gbc);
+        roleCombo = new JComboBox<>(new String[]{"manager", "salesman", "cashier"});
+        mainPanel.add(roleCombo, gbc);
         
         // סניף
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 8;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         mainPanel.add(new JLabel("סניף:"), gbc);
@@ -129,7 +166,13 @@ public class CreateEmployeeDialog extends JDialog {
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        branchCombo = new JComboBox<>(new String[]{"B1", "B2"});
+        // Cashier can only create for their own branch
+        if ("cashier".equals(role) && branchId != null) {
+            branchCombo = new JComboBox<>(new String[]{branchId});
+            branchCombo.setEnabled(false); // Disable selection for cashier
+        } else {
+            branchCombo = new JComboBox<>(new String[]{"B1", "B2"});
+        }
         mainPanel.add(branchCombo, gbc);
         
         add(mainPanel, BorderLayout.CENTER);
@@ -154,11 +197,14 @@ public class CreateEmployeeDialog extends JDialog {
         String phone = phoneField.getText().trim();
         String bankAccount = bankAccountField.getText().trim();
         String employeeNumber = employeeNumberField.getText().trim();
-        String role = roleField.getText().trim();
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword());
+        String role = (String) roleCombo.getSelectedItem();
         String branchId = (String) branchCombo.getSelectedItem();
         
         if (fullName.isEmpty() || idNumber.isEmpty() || phone.isEmpty() || 
-            bankAccount.isEmpty() || employeeNumber.isEmpty() || role.isEmpty()) {
+            bankAccount.isEmpty() || employeeNumber.isEmpty() || username.isEmpty() || 
+            password.isEmpty() || role == null) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",
@@ -168,7 +214,8 @@ public class CreateEmployeeDialog extends JDialog {
         
         try {
             String command = "CREATE_EMPLOYEE;" + fullName + ";" + idNumber + ";" + phone + 
-                           ";" + bankAccount + ";" + employeeNumber + ";" + role + ";" + branchId;
+                           ";" + bankAccount + ";" + employeeNumber + ";" + username + ";" + 
+                           password + ";" + role + ";" + branchId;
             String response = connection.sendCommand(command);
             
             if (response.startsWith("OK")) {

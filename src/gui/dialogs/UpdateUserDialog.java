@@ -8,7 +8,10 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג לעדכון משתמש (Admin only)
+ * Dialog for updating an existing user (admin only).
+ * Allows changing password, branch, and active status.
+ * 
+ * @author FinalProject
  */
 public class UpdateUserDialog extends JDialog {
     

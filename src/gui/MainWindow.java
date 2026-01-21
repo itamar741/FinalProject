@@ -4,41 +4,48 @@ import gui.tabs.*;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * חלון ראשי של האפליקציה עם טאבים
+ * Main application window with tabs for different functionalities.
+ * Displays different tabs based on user role (admin, manager, salesman, cashier).
+ * Admin users see additional tabs for employee management and logs.
+ * 
+ * @author FinalProject
  */
 public class MainWindow extends JFrame {
     
     private ClientConnection connection;
     private String currentUsername;
-    private String userType;  // ADMIN או EMPLOYEE
+    private String role;  // admin, manager, salesman, cashier
     private String branchId;
-    private String employeeNumber;
     
     private JTabbedPane tabbedPane;
     private JLabel statusLabel;
     
-    // טאבים
+    // Tabs
     private CustomersTab customersTab;
     private ProductsTab productsTab;
-    private UsersManagementTab usersTab;  // Admin only
     private EmployeesManagementTab employeesTab;  // Admin only
     private ReportsTab reportsTab;
     private ChatTab chatTab;
-    private LogsTab logsTab;  // Admin only
+    private LogsTab logsTab;  // Admin, Manager, Salesman
     
-    public MainWindow(ClientConnection connection, String username, String userType, String branchId, String employeeNumber) {
+    /**
+     * Constructs a new MainWindow for a logged-in user.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param username the logged-in username
+     * @param role the user's role (admin, manager, salesman, cashier)
+     * @param branchId the branch ID where the user works
+     */
+    public MainWindow(ClientConnection connection, String username, String role, String branchId) {
         this.connection = connection;
         this.currentUsername = username;
-        this.userType = userType;
+        this.role = role;
         this.branchId = branchId;
-        this.employeeNumber = employeeNumber;
         
-        setTitle("מערכת ניהול סניפי בגדים - " + username + " (" + userType + ")");
+        setTitle("מערכת ניהול סניפי בגדים - " + username + " (" + role + ")");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(1000, 700);
         setLocationRelativeTo(null);
@@ -46,6 +53,10 @@ public class MainWindow extends JFrame {
         createUI();
     }
     
+    /**
+     * Creates the user interface with tabs and status bar.
+     * Adds tabs based on user type - admin users get additional management tabs.
+     */
     private void createUI() {
         setLayout(new BorderLayout());
         
@@ -53,37 +64,37 @@ public class MainWindow extends JFrame {
         tabbedPane = new JTabbedPane();
         tabbedPane.setTabPlacement(JTabbedPane.TOP);
         
-        // טאב 1: לקוחות (כל המשתמשים)
-        customersTab = new CustomersTab(connection, this);
-        tabbedPane.addTab("לקוחות", customersTab);
-        
-        // טאב 2: מוצרים ומלאי (כל המשתמשים)
-        productsTab = new ProductsTab(connection, this, userType, branchId);
-        tabbedPane.addTab("מוצרים ומלאי", productsTab);
-        
-        // טאב 3: ניהול משתמשים (Admin only)
-        if (userType.equals("ADMIN")) {
-            usersTab = new UsersManagementTab(connection, this);
-            tabbedPane.addTab("ניהול משתמשים", usersTab);
+        // טאב 1: לקוחות (לא ל-cashier)
+        if (!"cashier".equals(role)) {
+            customersTab = new CustomersTab(connection, this);
+            tabbedPane.addTab("לקוחות", customersTab);
         }
         
-        // טאב 4: ניהול עובדים (Admin only)
-        if (userType.equals("ADMIN")) {
-            employeesTab = new EmployeesManagementTab(connection, this);
+        // טאב 2: מוצרים ומלאי (לא ל-cashier)
+        if (!"cashier".equals(role)) {
+            productsTab = new ProductsTab(connection, this, role, branchId);
+            tabbedPane.addTab("מוצרים ומלאי", productsTab);
+        }
+        
+        // טאב 3: ניהול עובדים (Admin and Cashier)
+        if ("admin".equals(role) || "cashier".equals(role)) {
+            employeesTab = new EmployeesManagementTab(connection, this, role, branchId);
             tabbedPane.addTab("ניהול עובדים", employeesTab);
         }
         
-        // טאב 5: לוגים (Admin only)
-        if (userType.equals("ADMIN")) {
+        // טאב 4: לוגים (Admin, Manager, Salesman)
+        if ("admin".equals(role) || "manager".equals(role) || "salesman".equals(role)) {
             logsTab = new LogsTab(connection, this);
             tabbedPane.addTab("לוגים", logsTab);
         }
         
-        // טאב 6: דוחות (כל המשתמשים, אבל עם תוכן שונה)
-        reportsTab = new ReportsTab(connection, this, userType);
-        tabbedPane.addTab("דוחות", reportsTab);
+        // טאב 5: דוחות (לא ל-cashier)
+        if (!"cashier".equals(role)) {
+            reportsTab = new ReportsTab(connection, this, role);
+            tabbedPane.addTab("דוחות", reportsTab);
+        }
         
-        // טאב 7: צ'אט (כל המשתמשים)
+        // טאב 6: צ'אט (כל המשתמשים)
         chatTab = new ChatTab(connection, this);
         tabbedPane.addTab("צ'אט", chatTab);
         
@@ -103,7 +114,10 @@ public class MainWindow extends JFrame {
     }
     
     /**
-     * עדכון הודעת סטטוס
+     * Updates the status message in the status bar.
+     * Thread-safe - uses SwingUtilities.invokeLater for EDT safety.
+     * 
+     * @param message the status message to display
      */
     public void setStatus(String message) {
         SwingUtilities.invokeLater(() -> {
@@ -112,7 +126,11 @@ public class MainWindow extends JFrame {
     }
     
     /**
-     * עדכון הודעת סטטוס עם צבע
+     * Updates the status message with a specific color.
+     * Thread-safe - uses SwingUtilities.invokeLater for EDT safety.
+     * 
+     * @param message the status message to display
+     * @param color the color for the status message
      */
     public void setStatus(String message, Color color) {
         SwingUtilities.invokeLater(() -> {
@@ -122,7 +140,8 @@ public class MainWindow extends JFrame {
     }
     
     /**
-     * רענון כל הטאבים (לאחר פעולה)
+     * Refreshes all tabs (after an operation).
+     * Called to update UI after data changes.
      */
     public void refreshAllTabs() {
         if (customersTab != null) {
@@ -131,16 +150,14 @@ public class MainWindow extends JFrame {
         if (productsTab != null) {
             productsTab.refresh();
         }
-        if (usersTab != null) {
-            usersTab.refresh();
-        }
         if (employeesTab != null) {
             employeesTab.refresh();
         }
     }
     
     /**
-     * התנתקות מהמערכת
+     * Performs logout from the system.
+     * Shows confirmation dialog, sends logout command, and opens LoginWindow.
      */
     private void performLogout() {
         int confirm = JOptionPane.showConfirmDialog(this,
@@ -174,17 +191,14 @@ public class MainWindow extends JFrame {
         return currentUsername;
     }
     
-    public String getUserType() {
-        return userType;
+    public String getRole() {
+        return role;
     }
     
     public String getBranchId() {
         return branchId;
     }
     
-    public String getEmployeeNumber() {
-        return employeeNumber;
-    }
     
     @Override
     public void dispose() {

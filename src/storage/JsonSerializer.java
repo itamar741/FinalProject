@@ -6,11 +6,21 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * מחלקה פשוטה ל-JSON serialization/deserialization ללא תלויות חיצוניות
- * משתמשת בגישה פשוטה של string manipulation
+ * Simple JSON serialization/deserialization class without external dependencies.
+ * Uses string manipulation and regular expressions for parsing.
+ * Handles Map, List, String, Number, Boolean, and custom objects (via DTOs).
+ * 
+ * @author FinalProject
  */
 public class JsonSerializer {
     
+    /**
+     * Converts an object to JSON string.
+     * Handles Map, List, String, Number, Boolean, and custom objects.
+     * 
+     * @param obj the object to serialize
+     * @return a JSON string representation
+     */
     public String toJson(Object obj) {
         if (obj == null) {
             return "null";
@@ -79,9 +89,9 @@ public class JsonSerializer {
     
     private String toJsonUserData(UserData user) {
         return String.format(
-            "{\n  \"username\": \"%s\",\n  \"password\": \"%s\",\n  \"employeeNumber\": \"%s\",\n  \"userType\": \"%s\",\n  \"branchId\": \"%s\",\n  \"active\": %s,\n  \"mustChangePassword\": %s\n}",
-            escapeJson(user.username), escapeJson(user.password), escapeJson(user.employeeNumber),
-            escapeJson(user.userType), escapeJson(user.branchId), user.active, user.mustChangePassword
+            "{\n  \"username\": \"%s\",\n  \"password\": \"%s\",\n  \"role\": \"%s\",\n  \"branchId\": \"%s\",\n  \"active\": %s,\n  \"mustChangePassword\": %s\n}",
+            escapeJson(user.username), escapeJson(user.password),
+            escapeJson(user.role), escapeJson(user.branchId), user.active, user.mustChangePassword
         );
     }
     
@@ -158,8 +168,7 @@ public class JsonSerializer {
         UserData user = new UserData();
         user.username = extractString(json, "username");
         user.password = extractString(json, "password");
-        user.employeeNumber = extractString(json, "employeeNumber");
-        user.userType = extractString(json, "userType");
+        user.role = extractString(json, "role");
         user.branchId = extractString(json, "branchId");
         user.active = extractBoolean(json, "active");
         user.mustChangePassword = extractBoolean(json, "mustChangePassword");
@@ -504,6 +513,23 @@ public class JsonSerializer {
         Matcher matcher = pattern.matcher(json);
         while (matcher.find()) {
             result.add(matcher.group(1));
+        }
+        return result;
+    }
+    
+    public Map<String, Double> fromJsonDiscounts(String json) {
+        Map<String, Double> result = new HashMap<>();
+        if (json == null || json.trim().isEmpty() || json.equals("{}")) {
+            return result;
+        }
+        
+        // Parse JSON object: {"NEW": 0.0, "RETURNING": 5.0, "VIP": 15.0}
+        Pattern pattern = Pattern.compile("\"([^\"]+)\"\\s*:\\s*([0-9]+\\.?[0-9]*)");
+        Matcher matcher = pattern.matcher(json);
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            double value = Double.parseDouble(matcher.group(2));
+            result.put(key, value);
         }
         return result;
     }

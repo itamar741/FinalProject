@@ -1,6 +1,7 @@
 package controller;
 import model.Product;
 import model.managers.*;
+import model.managers.PermissionChecker;
 import model.exceptions.*;
 import model.Customer;
 import model.LogEntry;
@@ -26,7 +27,14 @@ import java.util.HashMap;
 import java.io.IOException;
 import java.io.FileWriter;
 
-
+/**
+ * Central controller for the entire system.
+ * Acts as a Facade Pattern - provides a unified API for all system operations.
+ * Mediates between GUI/Server and Managers, handles data loading/saving, and ensures logging.
+ * All business operations go through this controller, which delegates to appropriate Managers.
+ * 
+ * @author FinalProject
+ */
 public class SystemController {
 
     private CustomerManager customerManager;
@@ -39,8 +47,13 @@ public class SystemController {
     private SessionManager sessionManager;
     private EmployeeManager employeeManager;
     private ChatManager chatManager;
+    private DiscountManager discountManager;
     private StorageManager storageManager;
 
+    /**
+     * Constructs a new SystemController.
+     * Initializes all Managers and loads data from storage.
+     */
     public SystemController() {
         storageManager = new StorageManager();
         
@@ -53,25 +66,32 @@ public class SystemController {
         authenticationManager = new AuthenticationManager();
         sessionManager = new SessionManager();
         employeeManager = new EmployeeManager();
-        chatManager = new ChatManager(sessionManager, employeeManager);
+        chatManager = new ChatManager(sessionManager);
+        discountManager = new DiscountManager();
         
-        // טעינת נתונים משמירה קיימת
+        // Set DiscountManager for Customer classes
+        model.Customer.setDiscountManager(discountManager);
+        
+        // Load data from existing storage
         loadAllData();
     }
     
     /**
-     * טעינת כל הנתונים מהשמירה
+     * Loads all data from storage.
+     * Called during initialization. Continues with empty data if loading fails.
      */
     private void loadAllData() {
         try {
             loadUsers();
             loadEmployees();
+            rebuildUsernameMappings();  // Rebuild username->employeeNumber mappings from existing data
             loadCustomers();
             loadProducts();
             loadBranches();
             loadInventory();
             loadSales();
             loadLogs();
+            loadDiscounts();
         } catch (IOException e) {
             System.err.println("Error loading data: " + e.getMessage());
             // ממשיכים עם נתונים ריקים
@@ -79,7 +99,39 @@ public class SystemController {
     }
     
     /**
-     * שמירת כל הנתונים לשמירה
+     * Rebuilds username to employee number mappings from existing employees and users.
+     * This is needed when loading data from storage, as the mapping isn't persisted separately.
+     * Attempts to match users to employees by finding employees with matching role and branch.
+     */
+    private void rebuildUsernameMappings() {
+        Map<String, User> users = authenticationManager.getAllUsers();
+        Map<String, Employee> employees = employeeManager.getAllEmployees();
+        
+        // For each user, try to find a matching employee
+        for (User user : users.values()) {
+            // Skip admin user (handled specially)
+            if ("admin".equals(user.getRole()) && "ALL".equals(user.getBranchId())) {
+                continue;
+            }
+            
+            // Try to find employee with matching role and branch
+            for (Employee emp : employees.values()) {
+                if (emp.getRole().equals(user.getRole()) && 
+                    emp.getBranchId().equals(user.getBranchId())) {
+                    // Found a match - register the mapping
+                    // Note: This is a best-effort approach. If multiple employees match,
+                    // we'll use the first one found. In practice, username should match employeeNumber
+                    // or be stored in Employee for accurate mapping.
+                    employeeManager.registerUsernameMapping(user.getUsername(), emp.getEmployeeNumber());
+                    break;  // Use first match found
+                }
+            }
+        }
+    }
+    
+    /**
+     * Saves all data to storage.
+     * Called periodically or on shutdown to persist all system data.
      */
     public void saveAllData() {
         try {
@@ -91,6 +143,7 @@ public class SystemController {
             saveSales();
             saveLogs();
             saveBranches();
+            saveDiscounts();
         } catch (IOException e) {
             System.err.println("Error saving data: " + e.getMessage());
         }
@@ -127,6 +180,9 @@ public class SystemController {
                 }
             } catch (DuplicateEmployeeException e) {
                 // כבר קיים, מדלג
+            } catch (InvalidIdNumberException | InvalidPhoneException e) {
+                // נתונים לא תקינים מהקובץ - מדלג על העובד הזה
+                System.err.println("Skipping employee with invalid data: " + empData.employeeNumber + " - " + e.getMessage());
             }
         }
     }
@@ -247,6 +303,18 @@ public class SystemController {
         List<String> branchIds = branchManager.getBranchIds();
         storageManager.saveBranches(branchIds);
     }
+    
+    private void loadDiscounts() throws IOException {
+        Map<String, Double> discounts = storageManager.loadDiscounts();
+        if (!discounts.isEmpty()) {
+            discountManager.setAllDiscounts(discounts);
+        }
+    }
+    
+    private void saveDiscounts() throws IOException {
+        Map<String, Double> discounts = discountManager.getAllDiscounts();
+        storageManager.saveDiscounts(discounts);
+    }
 
     public Session login(String username, String password, Socket socket)
             throws InvalidCredentialsException, UserAlreadyLoggedInException {
@@ -255,15 +323,14 @@ public class SystemController {
         
         Session session = sessionManager.createSession(
             username,
-            user.getEmployeeNumber(),
             user.getBranchId(),
-            user.getUserType(),  // שונה מ-getRole()
+            user.getRole(),
             socket
         );
         
         LogEntry entry = new LogEntry(
             "LOGIN",
-            "User " + username + " (" + user.getUserType() + ") logged in from " + socket.getRemoteSocketAddress(),
+            "User " + username + " (" + user.getRole() + ") logged in from " + socket.getRemoteSocketAddress(),
             LocalDateTime.now().toString()
         );
         logManager.addLog(entry);
@@ -276,6 +343,11 @@ public class SystemController {
         return session;
     }
     
+    /**
+     * Logs out a user and removes their session.
+     * 
+     * @param socket the socket connection to logout
+     */
     public void logout(Socket socket) {
         Session session = sessionManager.getSession(socket);
         if (session != null) {
@@ -294,23 +366,52 @@ public class SystemController {
         sessionManager.removeSession(socket);
     }
     
+    /**
+     * Gets the session for a socket connection.
+     * 
+     * @param socket the socket connection
+     * @return the Session object, or null if not found
+     */
     public Session getSession(Socket socket) {
         return sessionManager.getSession(socket);
     }
     
-    // Getters למנהלים
+    /**
+     * Gets the AuthenticationManager (for internal use).
+     * 
+     * @return the AuthenticationManager instance
+     */
     public AuthenticationManager getAuthenticationManager() {
         return authenticationManager;
     }
     
+    /**
+     * Gets the EmployeeManager (for internal use).
+     * 
+     * @return the EmployeeManager instance
+     */
     public EmployeeManager getEmployeeManager() {
         return employeeManager;
     }
     
+    /**
+     * Gets the SessionManager (for internal use).
+     * 
+     * @return the SessionManager instance
+     */
     public SessionManager getSessionManager() {
         return sessionManager;
     }
 
+    /**
+     * Adds a new customer to the system.
+     * 
+     * @param fullName the customer's full name
+     * @param idNumber the customer's ID number (unique identifier)
+     * @param phone the customer's phone number
+     * @param customerType the customer type ("NEW", "RETURNING", or "VIP")
+     * @throws DuplicateCustomerException if a customer with the same ID number already exists
+     */
     public void addCustomer(String fullName,
                             String idNumber,
                             String phone,
@@ -342,7 +443,12 @@ public class SystemController {
     }
     
     /**
-     * עדכון פרטי לקוח
+     * Updates customer details.
+     * 
+     * @param idNumber the customer's ID number
+     * @param fullName the new full name (null or empty to keep current)
+     * @param phone the new phone number (null or empty to keep current)
+     * @param customerType the new customer type (null or empty to keep current)
      */
     public void updateCustomer(String idNumber,
                                String fullName,
@@ -368,7 +474,9 @@ public class SystemController {
     }
     
     /**
-     * מחיקת לקוח
+     * Deletes a customer from the system.
+     * 
+     * @param idNumber the customer's ID number
      */
     public void deleteCustomer(String idNumber) {
         customerManager.deleteCustomer(idNumber);
@@ -389,7 +497,15 @@ public class SystemController {
     }
 
     /**
-     * הוספת מוצר חדש למלאי (יוצר את המוצר אם לא קיים)
+     * Adds a new product to inventory (creates the product if it doesn't exist).
+     * 
+     * @param productId the product ID
+     * @param name the product name
+     * @param category the product category
+     * @param price the product price
+     * @param quantity the quantity to add to inventory
+     * @param branchId the branch ID
+     * @throws InvalidQuantityException if quantity is less than or equal to 0
      */
     public void addProduct(String productId,
                            String name,
@@ -426,6 +542,15 @@ public class SystemController {
         }
     }
     
+    /**
+     * Adds an existing product to inventory.
+     * Product must already exist in the catalog.
+     * 
+     * @param productId the product ID (must exist)
+     * @param quantity the quantity to add
+     * @param branchId the branch ID
+     * @throws InvalidQuantityException if quantity is less than or equal to 0
+     */
     public void addProductToInventory(String productId,
                                       int quantity,
                                       String branchId)
@@ -462,7 +587,13 @@ public class SystemController {
     }
     
     /**
-     * הסרת כמות מהמלאי
+     * Removes a quantity of a product from inventory.
+     * 
+     * @param productId the product ID
+     * @param quantity the quantity to remove
+     * @param branchId the branch ID
+     * @throws InvalidQuantityException if quantity is less than or equal to 0
+     * @throws InsufficientStockException if there is not enough stock to remove
      */
     public void removeFromInventory(String productId,
                                     int quantity,
@@ -497,7 +628,11 @@ public class SystemController {
     }
     
     /**
-     * מחיקת מוצר מהמערכת (רק ADMIN)
+     * Deletes a product from the system (admin only).
+     * Removes the product from all branch inventories before deletion.
+     * 
+     * @param productId the product ID to delete
+     * @throws IllegalArgumentException if product not found
      */
     public void deleteProduct(String productId) {
         // 1. בדיקה שהמוצר קיים
@@ -542,6 +677,19 @@ public class SystemController {
     }
 
 
+    /**
+     * Sells a product to a customer.
+     * Validates stock, calculates price based on customer type (polymorphism), creates sale record.
+     * 
+     * @param productId the product ID
+     * @param quantity the quantity to sell
+     * @param branchId the branch ID where the sale occurs
+     * @param employeeNumber the employee number making the sale
+     * @param customerId the customer ID making the purchase
+     * @throws InvalidQuantityException if quantity is less than or equal to 0
+     * @throws InsufficientStockException if there is not enough stock
+     * @throws InactiveProductException if the product is not active
+     */
     public void sellProduct(String productId,
                             int quantity,
                             String branchId,
@@ -583,6 +731,7 @@ public class SystemController {
         salesManager.addSale(sale);
 
         // 7. לוג
+        String customerType = customer.getCustomerType();
         LogEntry entry = new LogEntry(
                 "SALE",
                 "Sold product " + productId +
@@ -591,7 +740,9 @@ public class SystemController {
                         ", basePrice=" + basePrice +
                         ", finalPrice=" + finalPrice +
                         ", branch=" + branchId +
-                        ", customerId=" + customerId,
+                        ", customerId=" + customerId +
+                        ", customerType=" + customerType +
+                        ", employeeNumber=" + employeeNumber,
                 dateTime
         );
 
@@ -606,7 +757,14 @@ public class SystemController {
     }
     
     /**
-     * חישוב מחיר למכירה (לפני ביצוע המכירה)
+     * Calculates the final price for a sale (before executing the sale).
+     * Uses customer's calculatePrice() method to apply appropriate discount (polymorphism).
+     * 
+     * @param productId the product ID
+     * @param quantity the quantity to calculate price for
+     * @param customerId the customer ID
+     * @return the final price after customer discount
+     * @throws IllegalArgumentException if product or customer not found
      */
     public double calculatePrice(String productId, int quantity, String customerId) {
         Product product = productManager.getExistingProduct(productId);
@@ -631,12 +789,20 @@ public class SystemController {
     // ========== Admin Methods - User Management ==========
     
     /**
-     * יצירת משתמש חדש (רק ADMIN)
+     * Creates a new user account.
+     * Permission check should be done by caller using PermissionChecker.canCreateUser().
+     * 
+     * @param username the unique username
+     * @param password the user's password (must meet password policy)
+     * @param role the user's role (admin, manager, salesman, cashier)
+     * @param branchId the branch ID where the user works
+     * @throws WeakPasswordException if password does not meet requirements
+     * @throws DuplicateUserException if username already exists
+     * @throws IllegalArgumentException if role is invalid
      */
     public void createUser(String username,
                           String password,
-                          String employeeNumber,
-                          String userType,
+                          String role,
                           String branchId)
             throws WeakPasswordException, DuplicateUserException {
         
@@ -645,16 +811,11 @@ public class SystemController {
             throw new DuplicateUserException("User with username " + username + " already exists");
         }
         
-        // בדיקה ש-userType תקין
-        if (!userType.equals("ADMIN") && !userType.equals("EMPLOYEE")) {
-            throw new IllegalArgumentException("UserType must be ADMIN or EMPLOYEE");
-        }
-        
-        authenticationManager.createUser(username, password, employeeNumber, userType, branchId);
+        authenticationManager.createUser(username, password, role, branchId);
         
         LogEntry entry = new LogEntry(
                 "CREATE_USER",
-                "User created: " + username + ", type=" + userType + ", employee=" + employeeNumber + ", branch=" + branchId,
+                "User created: " + username + ", role=" + role + ", branch=" + branchId,
                 LocalDateTime.now().toString()
         );
         logManager.addLog(entry);
@@ -667,7 +828,15 @@ public class SystemController {
     }
     
     /**
-     * עדכון משתמש (רק ADMIN)
+     * Updates user details (admin only).
+     * Only updates fields that are provided (not null).
+     * 
+     * @param username the username to update
+     * @param newPassword the new password (null to keep current)
+     * @param newBranchId the new branch ID (null to keep current)
+     * @param active the new active status (null to keep current)
+     * @throws UserNotFoundException if user not found
+     * @throws WeakPasswordException if new password does not meet requirements
      */
     public void updateUser(String username,
                           String newPassword,
@@ -711,7 +880,12 @@ public class SystemController {
     }
     
     /**
-     * השבתת/הפעלת משתמש (רק ADMIN)
+     * Activates or deactivates a user account (admin only).
+     * If deactivating, disconnects the user if currently logged in.
+     * 
+     * @param username the username
+     * @param active true to activate, false to deactivate
+     * @throws UserNotFoundException if user not found
      */
     public void setUserActive(String username, boolean active)
             throws UserNotFoundException {
@@ -746,14 +920,20 @@ public class SystemController {
     }
     
     /**
-     * קבלת כל המשתמשים (רק ADMIN)
+     * Gets all users (admin only).
+     * 
+     * @return a Map of username to User
      */
     public Map<String, User> getAllUsers() {
         return authenticationManager.getAllUsers();
     }
     
     /**
-     * קבלת משתמש לפי username (רק ADMIN)
+     * Gets a user by username (admin only).
+     * 
+     * @param username the username
+     * @return the User object
+     * @throws UserNotFoundException if user not found
      */
     public User getUser(String username) throws UserNotFoundException {
         User user = authenticationManager.getUser(username);
@@ -764,7 +944,12 @@ public class SystemController {
     }
     
     /**
-     * מחיקת משתמש מהמערכת (רק ADMIN)
+     * Deletes a user from the system (admin only).
+     * Disconnects the user if currently logged in before deletion.
+     * 
+     * @param username the username to delete
+     * @throws UserNotFoundException if user not found
+     * @throws IllegalArgumentException if attempting to delete default admin or superadmin
      */
     public void deleteUser(String username) throws UserNotFoundException {
         User user = authenticationManager.getUser(username);
@@ -797,27 +982,63 @@ public class SystemController {
     // ========== Admin Methods - Employee Management ==========
     
     /**
-     * יצירת עובד חדש (רק ADMIN)
+     * Creates a new employee and automatically creates a user account for them.
+     * 
+     * @param fullName the employee's full name
+     * @param idNumber the employee's ID number
+     * @param phone the employee's phone number
+     * @param bankAccount the employee's bank account number
+     * @param employeeNumber the unique employee number
+     * @param username the username for the user account
+     * @param password the password for the user account
+     * @param role the employee's role (e.g., "manager", "cashier", "salesperson")
+     * @param branchId the branch ID where the employee works
+     * @throws DuplicateEmployeeException if employee with same employeeNumber or idNumber already exists
+     * @throws DuplicateUserException if username already exists
+     * @throws WeakPasswordException if password does not meet requirements
      */
     public void createEmployee(String fullName,
                               String idNumber,
                               String phone,
                               String bankAccount,
                               String employeeNumber,
+                              String username,
+                              String password,
                               String role,
                               String branchId)
-            throws DuplicateEmployeeException {
+            throws DuplicateEmployeeException, DuplicateUserException, WeakPasswordException,
+                   InvalidIdNumberException, InvalidPhoneException {
         
+        // Create employee first
         employeeManager.addEmployee(fullName, idNumber, phone, bankAccount, employeeNumber, role, branchId);
+        
+        // Register username to employee number mapping
+        employeeManager.registerUsernameMapping(username, employeeNumber);
+        
+        // Create user account with same role and branchId
+        try {
+            createUser(username, password, role, branchId);
+        } catch (DuplicateUserException | WeakPasswordException e) {
+            // If user creation fails, we should rollback employee creation
+            // But EmployeeManager doesn't have a delete method, so we'll just throw the exception
+            // In a production system, we'd use transactions
+            try {
+                employeeManager.deleteEmployee(employeeNumber);
+            } catch (EmployeeNotFoundException ex) {
+                // Employee wasn't created or already deleted
+            }
+            throw e;
+        }
         
         LogEntry entry = new LogEntry(
                 "CREATE_EMPLOYEE",
-                "Employee created: " + fullName + ", number=" + employeeNumber + ", role=" + role + ", branch=" + branchId,
+                "Employee created: " + fullName + ", number=" + employeeNumber + ", role=" + role + ", branch=" + branchId + ", username=" + username,
                 LocalDateTime.now().toString()
         );
         logManager.addLog(entry);
         try {
             saveEmployees();
+            saveUsers();
             saveLogs();
         } catch (IOException e) {
             System.err.println("Error saving data: " + e.getMessage());
@@ -825,7 +1046,16 @@ public class SystemController {
     }
     
     /**
-     * עדכון פרטי עובד (רק ADMIN)
+     * Updates employee details (admin only).
+     * Only updates fields that are provided (not null or empty).
+     * 
+     * @param employeeNumber the employee number
+     * @param fullName the new full name (null or empty to keep current)
+     * @param phone the new phone number (null or empty to keep current)
+     * @param bankAccount the new bank account (null or empty to keep current)
+     * @param role the new role (null or empty to keep current)
+     * @param branchId the new branch ID (null or empty to keep current)
+     * @throws EmployeeNotFoundException if employee not found
      */
     public void updateEmployee(String employeeNumber,
                               String fullName,
@@ -833,7 +1063,7 @@ public class SystemController {
                               String bankAccount,
                               String role,
                               String branchId)
-            throws EmployeeNotFoundException {
+            throws EmployeeNotFoundException, InvalidPhoneException {
         
         employeeManager.updateEmployee(employeeNumber, fullName, phone, bankAccount, role, branchId);
         
@@ -852,7 +1082,11 @@ public class SystemController {
     }
     
     /**
-     * השבתת/הפעלת עובד (רק ADMIN)
+     * Activates or deactivates an employee (admin only).
+     * 
+     * @param employeeNumber the employee number
+     * @param active true to activate, false to deactivate
+     * @throws EmployeeNotFoundException if employee not found
      */
     public void setEmployeeActive(String employeeNumber, boolean active)
             throws EmployeeNotFoundException {
@@ -874,7 +1108,10 @@ public class SystemController {
     }
     
     /**
-     * מחיקת עובד (רק ADMIN)
+     * Deletes an employee from the system (admin only).
+     * 
+     * @param employeeNumber the employee number to delete
+     * @throws EmployeeNotFoundException if employee not found
      */
     public void deleteEmployee(String employeeNumber)
             throws EmployeeNotFoundException {
@@ -896,14 +1133,20 @@ public class SystemController {
     }
     
     /**
-     * קבלת כל העובדים (רק ADMIN)
+     * Gets all employees (admin only).
+     * 
+     * @return a Map of employeeNumber to Employee
      */
     public Map<String, Employee> getAllEmployees() {
         return employeeManager.getAllEmployees();
     }
     
     /**
-     * קבלת עובד לפי מספר עובד (רק ADMIN)
+     * Gets an employee by employee number (admin only).
+     * 
+     * @param employeeNumber the employee number
+     * @return the Employee object
+     * @throws EmployeeNotFoundException if employee not found
      */
     public Employee getEmployee(String employeeNumber)
             throws EmployeeNotFoundException {
@@ -911,7 +1154,10 @@ public class SystemController {
     }
     
     /**
-     * קבלת עובדים לפי סניף (רק ADMIN)
+     * Gets all employees for a specific branch (admin only).
+     * 
+     * @param branchId the branch ID
+     * @return a Map of employeeNumber to Employee for the specified branch
      */
     public Map<String, Employee> getEmployeesByBranch(String branchId) {
         return employeeManager.getEmployeesByBranch(branchId);
@@ -920,22 +1166,30 @@ public class SystemController {
     // ========== List Methods for GUI ==========
     
     /**
-     * קבלת כל הלקוחות (להצגה בממשק)
+     * Gets all customers (for display in GUI).
+     * 
+     * @return a Map of idNumber to Customer
      */
     public Map<String, Customer> getAllCustomersForDisplay() {
         return customerManager.getAllCustomers();
     }
     
     /**
-     * קבלת כל המוצרים (להצגה בממשק)
+     * Gets all products (for display in GUI).
+     * 
+     * @return a Map of productId to Product
      */
     public Map<String, Product> getAllProductsForDisplay() {
         return productManager.getAllProducts();
     }
     
     /**
-     * קבלת כמות במלאי לפי מוצר וסניף
-     * אם branchId = "ALL", מחזיר את הסכום מכל הסניפים (ADMIN only)
+     * Gets inventory quantity for a product and branch.
+     * If branchId = "ALL", returns the sum from all branches (admin only).
+     * 
+     * @param productId the product ID
+     * @param branchId the branch ID, or "ALL" for sum from all branches
+     * @return the quantity available, or 0 if product not found
      */
     public int getInventoryQuantity(String productId, String branchId) {
         Product product = productManager.getExistingProduct(productId);
@@ -966,8 +1220,11 @@ public class SystemController {
     // ========== Report Methods ==========
     
     /**
-     * דוח מכירות לפי סניף
-     * מחזיר רשימת ReportEntry עם סיכום לפי סניף
+     * Generates a sales report by branch.
+     * Returns a list of ReportEntry objects summarizing sales by branch.
+     * 
+     * @param branchId the branch ID to filter by, or null/"ALL" for all branches
+     * @return a list of ReportEntry objects
      */
     public List<ReportEntry> getSalesReportByBranch(String branchId) {
         List<Sale> allSales = salesManager.getSales();
@@ -1014,7 +1271,11 @@ public class SystemController {
     }
     
     /**
-     * דוח מכירות לפי מוצר
+     * Generates a sales report by product.
+     * Returns a list of ReportEntry objects for all sales of the specified product.
+     * 
+     * @param productId the product ID to filter by, or null/empty for all products
+     * @return a list of ReportEntry objects
      */
     public List<ReportEntry> getSalesReportByProduct(String productId) {
         List<Sale> allSales = salesManager.getSales();
@@ -1038,7 +1299,11 @@ public class SystemController {
     }
     
     /**
-     * דוח מכירות לפי קטגוריה
+     * Generates a sales report by category.
+     * Returns a list of ReportEntry objects summarizing sales by product category.
+     * 
+     * @param category the category to filter by, or null/empty for all categories
+     * @return a list of ReportEntry objects
      */
     public List<ReportEntry> getSalesReportByCategory(String category) {
         List<Sale> allSales = salesManager.getSales();
@@ -1084,7 +1349,12 @@ public class SystemController {
     }
     
     /**
-     * דוח מכירות יומי (לפי תאריך)
+     * Generates a daily sales report (by date).
+     * Filters sales by date and optionally by branch.
+     * 
+     * @param date the date to filter by (format: YYYY-MM-DD), or null/empty for all dates
+     * @param branchId the branch ID to filter by, or null/"ALL" for all branches
+     * @return a list of ReportEntry objects
      */
     public List<ReportEntry> getDailySalesReport(String date, String branchId) {
         List<Sale> allSales = salesManager.getSales();
@@ -1124,7 +1394,12 @@ public class SystemController {
     // ========== Chat Methods ==========
     
     /**
-     * משתמש מבקש צ'אט
+     * User requests a chat.
+     * Attempts immediate matching; if no match found, request is queued.
+     * 
+     * @param username the username requesting the chat
+     * @param branchId the branch ID of the requester
+     * @return "OK;MATCHED;chatId;user1;user2" if matched, "OK;QUEUE;requestId" if queued, "ERROR;..." on failure
      */
     public String requestChat(String username, String branchId) {
         String result = chatManager.requestChat(username, branchId);
@@ -1163,7 +1438,11 @@ public class SystemController {
     }
     
     /**
-     * שליחת הודעה בצ'אט
+     * Sends a message in a chat.
+     * 
+     * @param chatId the chat ID
+     * @param sender the sender's username
+     * @param message the message content
      */
     public void sendChatMessage(String chatId, String sender, String message) {
         chatManager.addMessage(chatId, sender, message);
@@ -1184,7 +1463,9 @@ public class SystemController {
     }
     
     /**
-     * סיום צ'אט
+     * Ends a chat session.
+     * 
+     * @param chatId the chat ID to end
      */
     public void endChat(String chatId) {
         chatManager.endChat(chatId);
@@ -1205,7 +1486,11 @@ public class SystemController {
     }
     
     /**
-     * מנהל מצטרף לצ'אט
+     * Manager joins an existing chat.
+     * 
+     * @param chatId the chat ID to join
+     * @param managerUsername the username of the manager joining
+     * @throws IllegalArgumentException if user is not a manager or chat not found
      */
     public void joinChatAsManager(String chatId, String managerUsername) {
         chatManager.joinChatAsManager(chatId, managerUsername);
@@ -1226,23 +1511,26 @@ public class SystemController {
     }
     
     /**
-     * רשימת משתמשים פנויים מסניף אחר
-     * @deprecated לא בשימוש יותר - משתמשים ב-getWaitingRequestsForBranch
-     */
-    @Deprecated
-    public List<String> getAvailableUsers(String excludeBranchId) {
-        return chatManager.getAvailableUsers(excludeBranchId);
-    }
-    
-    /**
      * קבלת רשימת בקשות ממתינות לסניף מסוים
+     */
+    /**
+     * Gets waiting chat requests for a specific branch.
+     * Used to notify available employees about pending requests from other branches.
+     * 
+     * @param branchId the branch ID
+     * @return a list of pending ChatRequest objects
      */
     public List<model.ChatRequest> getWaitingRequestsForBranch(String branchId) {
         return chatManager.getWaitingRequestsForBranch(branchId);
     }
     
     /**
-     * משתמש מאשר בקשה לצ'אט
+     * User accepts a chat request.
+     * Creates a chat session between the requester and the accepting user.
+     * 
+     * @param acceptingUsername the username of the user accepting the request
+     * @param requestId the request ID to accept
+     * @return "OK;MATCHED;chatId;requester;acceptor" if successful, "ERROR;..." on failure
      */
     public String acceptChatRequest(String acceptingUsername, String requestId) {
         String result = chatManager.acceptChatRequest(acceptingUsername, requestId);
@@ -1309,14 +1597,20 @@ public class SystemController {
     }
     
     /**
-     * קבלת כל הלוגים
+     * Gets all log entries in the system.
+     * 
+     * @return a list of all LogEntry objects
      */
     public List<LogEntry> getAllLogs() {
         return logManager.getLogs();
     }
     
     /**
-     * קבלת כל הלוגים של שיחה מסוימת
+     * Gets log entries for a specific chat.
+     * Filters logs by chatId.
+     * 
+     * @param chatId the chat ID
+     * @return a list of LogEntry objects related to the chat
      */
     public List<LogEntry> getChatLogs(String chatId) {
         List<LogEntry> allLogs = logManager.getLogs();
@@ -1330,7 +1624,11 @@ public class SystemController {
     }
     
     /**
-     * קבלת פרטי שיחה מלאים (לוגים + ChatSession אם קיים)
+     * Gets complete chat details (logs + ChatSession if exists).
+     * Returns a JSON string with chat information including session details and log entries.
+     * 
+     * @param chatId the chat ID
+     * @return a JSON string with chat details
      */
     public String getChatDetails(String chatId) {
         // איסוף כל הלוגים של השיחה
@@ -1374,7 +1672,13 @@ public class SystemController {
     }
     
     /**
-     * שמירת שיחה ל-RTF
+     * Saves a chat conversation to an RTF file.
+     * Collects all chat logs and messages, creates an RTF document with Hebrew support.
+     * 
+     * @param chatId the chat ID to save
+     * @return the filename of the created RTF file
+     * @throws IOException if file creation fails
+     * @throws IllegalArgumentException if no logs found for the chat
      */
     public String saveChatToRTF(String chatId) throws IOException {
         // קבלת כל הלוגים של השיחה
@@ -1536,6 +1840,55 @@ public class SystemController {
             "{\"actionType\":\"%s\",\"description\":\"%s\",\"dateTime\":\"%s\"%s}",
             escapeJson(log.getActionType()), escapeJson(log.getDescription()), escapeJson(log.getDateTime()), chatIdJson
         );
+    }
+    
+    // ========== Discount Management ==========
+    
+    /**
+     * Gets all discount percentages for customer types.
+     * 
+     * @return a Map of customerType to discount percentage
+     */
+    public Map<String, Double> getAllDiscounts() {
+        return discountManager.getAllDiscounts();
+    }
+    
+    /**
+     * Sets the discount percentage for a customer type.
+     * 
+     * @param customerType the customer type ("NEW", "RETURNING", or "VIP")
+     * @param discountPercentage the discount percentage (0.0 to 100.0)
+     * @throws IllegalArgumentException if customerType is invalid or discount is out of range
+     */
+    public void setDiscount(String customerType, double discountPercentage) throws IOException {
+        discountManager.setDiscount(customerType, discountPercentage);
+        saveDiscounts();
+        
+        // Log the change
+        LogEntry entry = new LogEntry(
+                "UPDATE_DISCOUNT",
+                "Discount for " + customerType + " customers updated to " + discountPercentage + "%",
+                java.time.LocalDateTime.now().toString()
+        );
+        logManager.addLog(entry);
+        saveLogs();
+    }
+    
+    /**
+     * Gets the employee number for a given username.
+     * For admin users, returns "0".
+     * For other users, looks up the employee number from the username mapping.
+     * 
+     * @param username the username
+     * @param role the user's role
+     * @return the employee number ("0" for admin, or the actual employee number for others)
+     */
+    public String getEmployeeNumberByUsername(String username, String role) {
+        if ("admin".equals(role)) {
+            return "0";
+        }
+        String employeeNumber = employeeManager.getEmployeeNumberByUsername(username);
+        return employeeNumber != null ? employeeNumber : "0"; // Default to "0" if not found
     }
     
 }

@@ -8,7 +8,10 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג לעדכון לקוח
+ * Dialog for updating an existing customer.
+ * Allows changing customer name, phone, and customer type.
+ * 
+ * @author FinalProject
  */
 public class UpdateCustomerDialog extends JDialog {
     

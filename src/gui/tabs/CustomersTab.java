@@ -8,14 +8,68 @@ import gui.dialogs.UpdateCustomerDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
- * טאב לניהול לקוחות
+ * Tab for managing customers.
+ * Contains two sub-tabs: one for customer management and one for discount settings.
+ * 
+ * @author FinalProject
  */
 public class CustomersTab extends JPanel {
+    
+    private ClientConnection connection;
+    private MainWindow mainWindow;
+    private JTabbedPane tabbedPane;
+    private CustomersManagementTab customersManagementTab;
+    private DiscountSettingsTab discountSettingsTab;
+    
+    /**
+     * Constructs a new CustomersTab with sub-tabs.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
+    public CustomersTab(ClientConnection connection, MainWindow mainWindow) {
+        this.connection = connection;
+        this.mainWindow = mainWindow;
+        
+        setLayout(new BorderLayout());
+        createUI();
+    }
+    
+    private void createUI() {
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setTabPlacement(JTabbedPane.TOP);
+        
+        // טאב 1: ניהול לקוחות
+        customersManagementTab = new CustomersManagementTab(connection, mainWindow);
+        tabbedPane.addTab("ניהול לקוחות", customersManagementTab);
+        
+        // טאב 2: הגדרות הנחות
+        discountSettingsTab = new DiscountSettingsTab(connection, mainWindow);
+        tabbedPane.addTab("הגדרות הנחות", discountSettingsTab);
+        
+        add(tabbedPane, BorderLayout.CENTER);
+    }
+    
+    /**
+     * רענון רשימת הלקוחות מהשרת
+     */
+    public void refresh() {
+        if (customersManagementTab != null) {
+            customersManagementTab.refresh();
+        }
+    }
+}
+
+/**
+ * Sub-tab for managing customers.
+ * Displays customers in a table and provides CRUD operations (Create, Read, Update, Delete).
+ * 
+ * @author FinalProject
+ */
+class CustomersManagementTab extends JPanel {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
@@ -26,7 +80,13 @@ public class CustomersTab extends JPanel {
     private JButton deleteButton;
     private JButton refreshButton;
     
-    public CustomersTab(ClientConnection connection, MainWindow mainWindow) {
+    /**
+     * Constructs a new CustomersManagementTab.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
+    public CustomersManagementTab(ClientConnection connection, MainWindow mainWindow) {
         this.connection = connection;
         this.mainWindow = mainWindow;
         
@@ -196,7 +256,6 @@ public class CustomersTab extends JPanel {
      */
     private void parseAndUpdateTable(String response) {
         if (response == null) {
-            System.err.println("CustomersTab: response is null");
             return;
         }
         
@@ -204,7 +263,6 @@ public class CustomersTab extends JPanel {
         response = response.trim();
         
         if (!response.startsWith("OK;")) {
-            System.err.println("CustomersTab: response does not start with OK: " + response);
             return;
         }
         
@@ -218,7 +276,6 @@ public class CustomersTab extends JPanel {
         // פיצול לפי "|" (זה המפריד בין לקוחות)
         String[] customers = data.split("\\|", -1);  // -1 כדי לשמור גם על ערכים ריקים בסוף
         
-        int addedCount = 0;
         for (String customerStr : customers) {
             customerStr = customerStr.trim();
             if (customerStr.isEmpty()) {
@@ -234,12 +291,208 @@ public class CustomersTab extends JPanel {
                 String customerType = parts[3];
                 
                 tableModel.addRow(new Object[]{idNumber, fullName, phone, customerType});
-                addedCount++;
-            } else {
-                System.err.println("CustomersTab: Invalid customer format: " + customerStr + " (parts.length=" + parts.length + ")");
             }
         }
+    }
+}
+
+/**
+ * Sub-tab for managing customer discount percentages.
+ * Allows users to set discount percentages for NEW, RETURNING, and VIP customers.
+ * 
+ * @author FinalProject
+ */
+class DiscountSettingsTab extends JPanel {
+    
+    private ClientConnection connection;
+    private MainWindow mainWindow;
+    private JTextField newCustomerDiscountField;
+    private JTextField returningCustomerDiscountField;
+    private JTextField vipCustomerDiscountField;
+    private JButton saveButton;
+    private JButton refreshButton;
+    
+    /**
+     * Constructs a new DiscountSettingsTab.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
+    public DiscountSettingsTab(ClientConnection connection, MainWindow mainWindow) {
+        this.connection = connection;
+        this.mainWindow = mainWindow;
         
-        System.out.println("CustomersTab: Added " + addedCount + " customers to table");
+        setLayout(new BorderLayout());
+        createUI();
+        refresh();
+    }
+    
+    private void createUI() {
+        // כותרת
+        JLabel titleLabel = new JLabel("הגדרות הנחות ללקוחות", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        add(titleLabel, BorderLayout.NORTH);
+        
+        // Panel מרכזי עם שדות
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.anchor = GridBagConstraints.EAST;
+        
+        // לקוח חדש
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        mainPanel.add(new JLabel("לקוח חדש (%):"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        newCustomerDiscountField = new JTextField(10);
+        mainPanel.add(newCustomerDiscountField, gbc);
+        
+        // לקוח חוזר
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        mainPanel.add(new JLabel("לקוח חוזר (%):"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        returningCustomerDiscountField = new JTextField(10);
+        mainPanel.add(returningCustomerDiscountField, gbc);
+        
+        // לקוח VIP
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        mainPanel.add(new JLabel("לקוח VIP (%):"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        vipCustomerDiscountField = new JTextField(10);
+        mainPanel.add(vipCustomerDiscountField, gbc);
+        
+        add(mainPanel, BorderLayout.CENTER);
+        
+        // Panel כפתורים
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        
+        saveButton = new JButton("שמור שינויים");
+        saveButton.addActionListener(e -> saveDiscounts());
+        buttonPanel.add(saveButton);
+        
+        refreshButton = new JButton("רענן");
+        refreshButton.addActionListener(e -> refresh());
+        buttonPanel.add(refreshButton);
+        
+        add(buttonPanel, BorderLayout.SOUTH);
+    }
+    
+    private void saveDiscounts() {
+        try {
+            double newDiscount = Double.parseDouble(newCustomerDiscountField.getText().trim());
+            double returningDiscount = Double.parseDouble(returningCustomerDiscountField.getText().trim());
+            double vipDiscount = Double.parseDouble(vipCustomerDiscountField.getText().trim());
+            
+            // Validation
+            if (newDiscount < 0 || newDiscount > 100 ||
+                returningDiscount < 0 || returningDiscount > 100 ||
+                vipDiscount < 0 || vipDiscount > 100) {
+                JOptionPane.showMessageDialog(this,
+                        "אחוז ההנחה חייב להיות בין 0 ל-100",
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Send commands to server
+            String command1 = "SET_DISCOUNT;NEW;" + newDiscount;
+            String command2 = "SET_DISCOUNT;RETURNING;" + returningDiscount;
+            String command3 = "SET_DISCOUNT;VIP;" + vipDiscount;
+            
+            String response1 = connection.sendCommand(command1);
+            String response2 = connection.sendCommand(command2);
+            String response3 = connection.sendCommand(command3);
+            
+            if (response1 != null && response1.startsWith("OK") &&
+                response2 != null && response2.startsWith("OK") &&
+                response3 != null && response3.startsWith("OK")) {
+                JOptionPane.showMessageDialog(this,
+                        "ההנחות עודכנו בהצלחה!",
+                        "הצלחה",
+                        JOptionPane.INFORMATION_MESSAGE);
+                mainWindow.setStatus("ההנחות עודכנו בהצלחה", Color.GREEN);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "שגיאה בעדכון ההנחות",
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this,
+                    "אנא הזן מספרים תקינים",
+                    "שגיאה",
+                    JOptionPane.ERROR_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                    "שגיאה בתקשורת: " + e.getMessage(),
+                    "שגיאה",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * רענון אחוזי ההנחה מהשרת
+     */
+    public void refresh() {
+        SwingUtilities.invokeLater(() -> {
+            mainWindow.setStatus("טוען הגדרות הנחות...");
+            
+            try {
+                String response = connection.sendCommand("GET_DISCOUNTS");
+                if (response != null && response.startsWith("OK;")) {
+                    parseAndUpdateFields(response);
+                    mainWindow.setStatus("מוכן", Color.BLACK);
+                } else {
+                    mainWindow.setStatus("שגיאה בטעינת הגדרות הנחות", Color.RED);
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(this,
+                        "שגיאה בטעינת הגדרות הנחות:\n" + e.getMessage(),
+                        "שגיאה",
+                        JOptionPane.ERROR_MESSAGE);
+                mainWindow.setStatus("שגיאה בטעינת הגדרות הנחות", Color.RED);
+            }
+        });
+    }
+    
+    private void parseAndUpdateFields(String response) {
+        // פורמט: OK;NEW:0.0;RETURNING:5.0;VIP:15.0
+        String data = response.substring(3); // הסרת "OK;"
+        String[] parts = data.split(";");
+        
+        for (String part : parts) {
+            String[] keyValue = part.split(":");
+            if (keyValue.length == 2) {
+                String customerType = keyValue[0];
+                double discount = Double.parseDouble(keyValue[1]);
+                
+                switch (customerType) {
+                    case "NEW":
+                        newCustomerDiscountField.setText(String.valueOf(discount));
+                        break;
+                    case "RETURNING":
+                        returningCustomerDiscountField.setText(String.valueOf(discount));
+                        break;
+                    case "VIP":
+                        vipCustomerDiscountField.setText(String.valueOf(discount));
+                        break;
+                }
+            }
+        }
     }
 }

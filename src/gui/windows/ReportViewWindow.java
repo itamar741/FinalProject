@@ -6,15 +6,17 @@ import gui.MainWindow;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.FileOutputStream;
 
 /**
- * חלון להצגת דוחות
+ * Window for displaying sales reports.
+ * Shows report data in a table and provides option to export to RTF format.
+ * Supports different report types: by branch, by product, by category, daily.
+ * 
+ * @author FinalProject
  */
 public class ReportViewWindow extends JDialog {
     
@@ -28,6 +30,14 @@ public class ReportViewWindow extends JDialog {
     private JButton exportRtfButton;
     private JButton closeButton;
     
+    /**
+     * Constructs a new ReportViewWindow.
+     * 
+     * @param parent the parent MainWindow
+     * @param connection the ClientConnection to the server
+     * @param reportType the type of report (SALES_BY_BRANCH, SALES_BY_PRODUCT, etc.)
+     * @param jsonData the report data in JSON format
+     */
     public ReportViewWindow(MainWindow parent, ClientConnection connection, String reportType, String jsonData) {
         super(parent, "דוח: " + getReportTypeName(reportType), true);
         this.connection = connection;

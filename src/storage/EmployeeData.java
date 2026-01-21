@@ -3,7 +3,10 @@ package storage;
 import model.Employee;
 
 /**
- * מחלקת DTO לשמירת Employee ב-JSON
+ * DTO class for storing Employee in JSON.
+ * Implements DTO Pattern - separates Model from storage format.
+ * 
+ * @author FinalProject
  */
 public class EmployeeData {
     public String fullName;
@@ -15,9 +18,16 @@ public class EmployeeData {
     public String branchId;
     public boolean active;
     
-    // Default constructor for JSON deserialization
+    /**
+     * Default constructor for JSON deserialization.
+     */
     public EmployeeData() {}
     
+    /**
+     * Constructs EmployeeData from an Employee object.
+     * 
+     * @param employee the Employee object to convert
+     */
     public EmployeeData(Employee employee) {
         this.fullName = employee.getFullName();
         this.idNumber = employee.getIdNumber();
@@ -29,6 +39,11 @@ public class EmployeeData {
         this.active = employee.isActive();
     }
     
+    /**
+     * Converts this DTO to an Employee object.
+     * 
+     * @return an Employee object with all fields set
+     */
     public Employee toEmployee() {
         Employee employee = new Employee(
             fullName, idNumber, phone, bankAccount,

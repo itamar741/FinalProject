@@ -8,7 +8,11 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג ליצירת משתמש חדש (Admin only)
+ * Dialog for creating a new user account.
+ * Allows setting username, password, role (manager/salesman/cashier), and branch.
+ * Admin users can only be created manually (hardcoded).
+ * 
+ * @author FinalProject
  */
 public class CreateUserDialog extends JDialog {
     
@@ -17,8 +21,7 @@ public class CreateUserDialog extends JDialog {
     
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private JTextField employeeNumberField;
-    private JComboBox<String> userTypeCombo;
+    private JComboBox<String> roleCombo;
     private JComboBox<String> branchCombo;
     private JButton saveButton;
     private JButton cancelButton;
@@ -65,35 +68,22 @@ public class CreateUserDialog extends JDialog {
         passwordField = new JPasswordField(20);
         mainPanel.add(passwordField, gbc);
         
-        // מספר עובד
+        // תפקיד
         gbc.gridx = 0;
         gbc.gridy = 2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
-        mainPanel.add(new JLabel("מספר עובד:"), gbc);
+        mainPanel.add(new JLabel("תפקיד:"), gbc);
         
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        employeeNumberField = new JTextField(20);
-        mainPanel.add(employeeNumberField, gbc);
-        
-        // סוג משתמש
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0;
-        mainPanel.add(new JLabel("סוג משתמש:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        userTypeCombo = new JComboBox<>(new String[]{"EMPLOYEE", "ADMIN"});
-        mainPanel.add(userTypeCombo, gbc);
+        roleCombo = new JComboBox<>(new String[]{"manager", "salesman", "cashier"});
+        mainPanel.add(roleCombo, gbc);
         
         // סניף
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 3;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         mainPanel.add(new JLabel("סניף:"), gbc);
@@ -123,11 +113,10 @@ public class CreateUserDialog extends JDialog {
     private void createUser() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
-        String employeeNumber = employeeNumberField.getText().trim();
-        String userType = (String) userTypeCombo.getSelectedItem();
+        String role = (String) roleCombo.getSelectedItem();
         String branchId = (String) branchCombo.getSelectedItem();
         
-        if (username.isEmpty() || password.isEmpty() || employeeNumber.isEmpty()) {
+        if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",
@@ -136,7 +125,7 @@ public class CreateUserDialog extends JDialog {
         }
         
         try {
-            String command = "CREATE_USER;" + username + ";" + password + ";" + employeeNumber + ";" + userType + ";" + branchId;
+            String command = "CREATE_USER;" + username + ";" + password + ";" + role + ";" + branchId;
             String response = connection.sendCommand(command);
             
             if (response.startsWith("OK")) {

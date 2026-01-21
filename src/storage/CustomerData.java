@@ -6,7 +6,11 @@ import model.ReturningCustomer;
 import model.VipCustomer;
 
 /**
- * מחלקת DTO לשמירת Customer ב-JSON
+ * DTO class for storing Customer in JSON.
+ * Implements DTO Pattern - separates Model from storage format.
+ * Stores customer type as string to enable reconstruction of correct Customer subclass.
+ * 
+ * @author FinalProject
  */
 public class CustomerData {
     public String fullName;
@@ -14,9 +18,17 @@ public class CustomerData {
     public String phone;
     public String customerType;  // NEW, RETURNING, VIP
     
-    // Default constructor for JSON deserialization
+    /**
+     * Default constructor for JSON deserialization.
+     */
     public CustomerData() {}
     
+    /**
+     * Constructs CustomerData from a Customer object.
+     * Determines customer type by checking instance type.
+     * 
+     * @param customer the Customer object to convert
+     */
     public CustomerData(Customer customer) {
         this.fullName = customer.getFullName();
         this.idNumber = customer.getIdNumber();
@@ -32,6 +44,13 @@ public class CustomerData {
         }
     }
     
+    /**
+     * Converts this DTO to a Customer object.
+     * Uses Factory Pattern to create the appropriate Customer subclass.
+     * 
+     * @return a Customer object (NewCustomer, ReturningCustomer, or VipCustomer)
+     * @throws IllegalArgumentException if customerType is unknown
+     */
     public Customer toCustomer() {
         switch (customerType) {
             case "NEW":

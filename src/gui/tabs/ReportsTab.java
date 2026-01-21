@@ -9,19 +9,30 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * טאב לדוחות
+ * Tab for generating and viewing sales reports.
+ * Provides buttons for different report types: by branch, by product, by category, daily.
+ * Opens ReportViewWindow to display report data.
+ * 
+ * @author FinalProject
  */
 public class ReportsTab extends JPanel {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
-    private String userType;
+    private String role;
     private String branchId;
     
-    public ReportsTab(ClientConnection connection, MainWindow mainWindow, String userType) {
+    /**
+     * Constructs a new ReportsTab.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     * @param role the user's role (admin, manager, salesman, cashier)
+     */
+    public ReportsTab(ClientConnection connection, MainWindow mainWindow, String role) {
         this.connection = connection;
         this.mainWindow = mainWindow;
-        this.userType = userType;
+        this.role = role;
         this.branchId = mainWindow.getBranchId();
         
         setLayout(new BorderLayout());
@@ -40,7 +51,7 @@ public class ReportsTab extends JPanel {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.anchor = GridBagConstraints.CENTER;
         
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             // דוחות לאדמין
             addReportButton(reportsPanel, gbc, "דוח מכירות - לפי סניף", 0, () -> showSalesByBranchReport());
             addReportButton(reportsPanel, gbc, "דוח מכירות - לפי מוצר", 1, () -> showSalesByProductReport());
@@ -68,7 +79,7 @@ public class ReportsTab extends JPanel {
     
     private void showSalesByBranchReport() {
         String branchId = null;
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             // דיאלוג לבחירת סניף (אופציונלי)
             Object[] options = {"כל הסניפים", "B1", "B2", "ביטול"};
             int choice = JOptionPane.showOptionDialog(this,
@@ -130,7 +141,7 @@ public class ReportsTab extends JPanel {
         
         // סניף (רק לאדמין)
         JComboBox<String> branchCombo = null;
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             gbc.gridx = 0;
             gbc.gridy = 1;
             gbc.fill = GridBagConstraints.NONE;
@@ -152,7 +163,7 @@ public class ReportsTab extends JPanel {
         if (result == JOptionPane.OK_OPTION) {
             String date = dateField.getText().trim();
             String selectedBranchId = "";
-            if (userType.equals("ADMIN") && branchCombo != null) {
+            if ("admin".equals(role) && branchCombo != null) {
                 String branchChoice = (String) branchCombo.getSelectedItem();
                 if ("B1".equals(branchChoice)) selectedBranchId = "B1";
                 else if ("B2".equals(branchChoice)) selectedBranchId = "B2";

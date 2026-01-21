@@ -1,0 +1,548 @@
+{\rtf1\ansi\ansicpg1255\deff0\nouicompat\deflang1037{\fonttbl{\f0\fnil\fcharset177 Arial;}}
+{\*\generator FinalProject Documentation}\viewkind4\uc1 
+\pard\sa200\sl276\slmult1\f0\fs22\lang1037
+
+{\b\fs32 תיעוד מקיף - מערכת ניהול רשת חנויות בגדים\par}
+\par
+
+{\b\fs24 חלק 1: סקירה כללית\par}
+\par
+
+{\b מטרת המערכת:\par}
+מערכת ניהול רשת חנויות בגדים המאפשרת ניהול מלאי, לקוחות, עובדים, מכירות, דוחות וצ'אט בין סניפים. המערכת בנויה בארכיטקטורת Client-Server עם ממשק גרפי (GUI) מבוסס Swing.
+\par\par
+
+{\b ארכיטקטורה כללית:\par}
+המערכת מבוססת על ארכיטקטורת Client-Server קלאסית:
+\par
+- {\b Server:} שרת Java המאזין על פורט 5000, מטפל בכל לקוח ב-Thread נפרד (Thread-per-Client)
+\par
+- {\b Client:} אפליקציית Swing המחוברת לשרת דרך Socket
+\par
+- {\b תקשורת:} פרוטוקול טקסט פשוט עם פקודות מופרדות ב-";"
+\par
+- {\b שמירת נתונים:} קבצי JSON בתיקיית data/
+\par\par
+
+{\b תבניות עיצוב (Design Patterns):\par}
+1. {\b MVC (Model-View-Controller):} הפרדה בין מודל הנתונים (model/), ממשק המשתמש (gui/), ולוגיקה עסקית (controller/)
+\par
+2. {\b Manager Pattern:} מחלקות Manager (CustomerManager, ProductManager, וכו') מנהלות את הלוגיקה העסקית והנתונים
+\par
+3. {\b Factory Pattern:} CustomerManager יוצר לקוחות מסוגים שונים (NewCustomer, ReturningCustomer, VipCustomer) לפי פרמטר
+\par
+4. {\b Queue Pattern (Producer-Consumer):} ChatManager משתמש ב-LinkedBlockingQueue לניהול תור בקשות צ'אט (FIFO)
+\par
+5. {\b DTO Pattern (Data Transfer Objects):} מחלקות *Data (CustomerData, EmployeeData, וכו') להעברת נתונים בין שכבות
+\par
+6. {\b Template Method Pattern:} מחלקת Customer היא abstract עם calculatePrice() abstract - כל סוג לקוח מממש את החישוב שלו
+\par\par
+
+{\b טכנולוגיות:\par}
+- Java (JDK 8+)
+- Swing (GUI)
+- Socket Programming (java.net.Socket)
+- JSON Manual Serialization (ללא ספריות חיצוניות)
+- RTF Manual Export (ללא ספריות חיצוניות)
+\par\par
+
+{\b\fs24 חלק 2: מבנה התיקיות והקבצים\par}
+\par
+
+{\b תיקיית src/:\par}
+התיקייה הראשית המכילה את כל קוד המקור.
+\par\par
+
+{\b תיקיית src/model/:\par}
+מכילה את מודל הנתונים והלוגיקה העסקית.
+\par
+{\b מחלקות בסיס:}
+\par
+- {\b Customer.java:} מחלקה abstract מייצגת לקוח. מכילה fullName, idNumber, phone. מתודה abstract calculatePrice() - כל סוג לקוח מחשב מחיר אחר (Template Method Pattern).
+\par
+- {\b NewCustomer.java:} לקוח חדש - מחזיר מחיר מלא (ללא הנחה).
+\par
+- {\b ReturningCustomer.java:} לקוח חוזר - מחזיר מחיר עם 5% הנחה (basePrice * 0.95).
+\par
+- {\b VipCustomer.java:} לקוח VIP - מחזיר מחיר עם 15% הנחה (basePrice * 0.85).
+\par
+- {\b Product.java:} מייצג מוצר - productId, name, category, price, active. equals() ו-hashCode() מבוססים על productId.
+\par
+- {\b Employee.java:} מייצג עובד - fullName, idNumber, phone, bankAccount, employeeNumber, role, branchId, active.
+\par
+- {\b Sale.java:} מייצג מכירה - product, quantity, branchId, employeeNumber, customerId, dateTime, basePrice, finalPrice.
+\par
+- {\b Branch.java:} מייצג סניף - branchId, Inventory. כל סניף יש לו מלאי נפרד.
+\par
+- {\b Inventory.java:} מנהל מלאי של סניף - Map<Product, Integer>. מתודות: addProduct(), sellProduct(), removeProduct(), getProductQuantity().
+\par
+- {\b User.java:} מייצג משתמש במערכת - username, password, employeeNumber, userType (ADMIN/EMPLOYEE), branchId, active, mustChangePassword.
+\par
+- {\b Session.java:} מייצג סשן פעיל - username, employeeNumber, branchId, userType, socket, loginTime.
+\par
+- {\b LogEntry.java:} מייצג רשומת לוג - actionType, description, dateTime, chatId (אופציונלי).
+\par
+- {\b ReportEntry.java:} מייצג שורת דוח - branchId, productId, productName, category, quantity, totalRevenue, date.
+\par\par
+
+{\b מחלקות צ'אט:}
+\par
+- {\b ChatSession.java:} מייצג צ'אט פעיל - chatId, Set<String> participants, startTime, SessionStatus (ACTIVE/ENDED). מתודות: addParticipant(), removeParticipant(), hasParticipant(), end().
+\par
+- {\b ChatMessage.java:} מייצג הודעה בצ'אט - chatId, senderUsername, message, timestamp, MessageType (TEXT/SYSTEM). מתודה toJson() להמרה ל-JSON.
+\par
+- {\b ChatRequest.java:} מייצג בקשה לצ'אט בתור - requestId, requesterUsername, requesterBranchId, requestTime, RequestStatus (PENDING/MATCHED/CANCELLED).
+\par
+- {\b ChatUserStatus.java:} Enum - AVAILABLE, IN_CHAT, IN_QUEUE.
+\par\par
+
+{\b תיקיית src/model/exceptions/:\par}
+12 מחלקות exceptions מותאמות אישית:
+\par
+- DuplicateCustomerException, DuplicateUserException, DuplicateEmployeeException
+\par
+- InvalidQuantityException, InsufficientStockException, InactiveProductException
+\par
+- InvalidCredentialsException, UserAlreadyLoggedInException, UnauthorizedException
+\par
+- WeakPasswordException, UserNotFoundException, EmployeeNotFoundException
+\par
+כל Exception מותאם למצב ספציפי ומאפשר טיפול מדויק בשגיאות.
+\par\par
+
+{\b תיקיית src/model/managers/:\par}
+10 מחלקות Manager (Manager Pattern) - כל אחת מנהלת תחום ספציפי:
+\par
+- {\b CustomerManager:} ניהול לקוחות - addCustomer(), updateCustomer(), deleteCustomer(), getCustomerById(), getAllCustomers(). יוצר לקוחות מסוגים שונים לפי customerType (Factory Pattern).
+\par
+- {\b ProductManager:} ניהול מוצרים - getProduct() (יוצר אם לא קיים), getExistingProduct(), getAllProducts(), addProductDirectly(), deleteProduct().
+\par
+- {\b InventoryManager:} ניהול מלאי - addProduct(), sellProduct(), removeProduct(), getProductQuantity(). עובד עם Branch ו-Inventory.
+\par
+- {\b SalesManager:} ניהול מכירות - addSale(), getSales(). שומר רשימת מכירות.
+\par
+- {\b LogManager:} ניהול לוגים - addLog(), getLogs(). שומר רשימת לוגים.
+\par
+- {\b BranchManager:} ניהול סניפים - addBranch(), getBranch(), getAllBranches(), getBranchIds(), loadBranches(). יוצר B1 ו-B2 כברירת מחדל.
+\par
+- {\b AuthenticationManager:} ניהול אימות - authenticate(), createUser(), changePassword(), getUser(), userExists(), getAllUsers(), setUserActive(), deleteUser(). יוצר admin ו-superadmin כברירת מחדל.
+\par
+- {\b EmployeeManager:} ניהול עובדים - addEmployee(), getEmployee(), getAllEmployees(), updateEmployee(), setEmployeeActive(), deleteEmployee(), getEmployeesByBranch(). בודק כפילויות לפי employeeNumber ו-idNumber.
+\par
+- {\b SessionManager:} ניהול סשנים - createSession() (בודק שלא מחובר כבר), removeSession(), getSession(), getSessionByUsername(), isUserLoggedIn(), getAllActiveSessions(). משתמש ב-ConcurrentHashMap ל-Thread-safety.
+\par
+- {\b ChatManager:} ניהול צ'אט - requestChat(), matchUsers() (FIFO), createChatSession(), addMessage(), endChat(), joinChatAsManager(), getUserStatus(), getChatHistory(), getUserChat(), cancelChatRequest(), getAllActiveChats(), canRequestChat(), getWaitingRequestsForBranch(), acceptChatRequest(). משתמש ב-LinkedBlockingQueue לתור בקשות (Queue Pattern).
+\par\par
+
+{\b תיקיית src/controller/:\par}
+- {\b SystemController.java:} נקודת הכניסה המרכזית - מתווך בין GUI/Server ל-Managers. מכיל את כל ה-Managers, טוען ושומר נתונים, מספק API אחיד לכל הפעולות. מתודות: login(), logout(), addCustomer(), updateCustomer(), deleteCustomer(), addProduct(), sellProduct(), createUser(), createEmployee(), getSalesReportByBranch(), requestChat(), sendChatMessage(), endChat(), joinChatAsManager(), getAllLogs(), saveChatToRTF(), וכו'.
+\par\par
+
+{\b תיקיית src/server/:\par}
+- {\b ServerMain.java:} נקודת הכניסה של השרת - יוצר SystemController, מאזין על פורט 5000, יוצר Thread חדש לכל לקוח (Thread-per-Client).
+\par
+- {\b ClientHandler.java:} מטפל בכל לקוח בנפרד - Runnable. קורא פקודות מהלקוח, מנתב ל-SystemController, שולח תגובות. מטפל ב-LOGIN/LOGOUT, וכל הפקודות המאומתות (ADD_CUSTOMER, SELL, REQUEST_CHAT, וכו'). מטפל ב-exceptions ומחזיר הודעות שגיאה מתאימות.
+\par\par
+
+{\b תיקיית src/gui/:\par}
+- {\b LoginWindow.java:} חלון התחברות - שם משתמש וסיסמה. מתחבר לשרת, שולח LOGIN, פותח MainWindow אם הצליח.
+\par
+- {\b MainWindow.java:} חלון ראשי עם JTabbedPane - מכיל 7 טאבים: לקוחות, מוצרים, משתמשים (Admin only), עובדים (Admin only), לוגים (Admin only), דוחות, צ'אט. Status bar עם כפתור התנתק.
+\par
+- {\b ClientConnection.java:} ניהול חיבור לשרת - connect(), disconnect(), sendCommand(), login(), logout(), isConnected(). משתמש ב-Socket, BufferedReader, PrintWriter.
+\par\par
+
+{\b תיקיית src/gui/tabs/:\par}
+7 טאבים:
+\par
+- {\b CustomersTab.java:} הצגת לקוחות בטבלה, הוספה, עריכה, מחיקה. משתמש ב-DefaultTableModel.
+\par
+- {\b ProductsTab.java:} הצגת מוצרים ומלאי. לאדמין: טאבים פנימיים לכל סניף (B1, B2). לעובד: רק סניף שלו. הוספה למלאי, מכירה, הסרה, מחיקת מוצר (Admin only).
+\par
+- {\b UsersManagementTab.java:} ניהול משתמשים (Admin only) - יצירה, עדכון, השבתה, מחיקה.
+\par
+- {\b EmployeesManagementTab.java:} ניהול עובדים (Admin only) - יצירה, עדכון, השבתה, מחיקה.
+\par
+- {\b LogsTab.java:} הצגת לוגים (Admin only) - סינון לפי סוג (הכל, רישום עובדים, רישום לקוחות, קניות/מכירות, פרטי שיחות). כפתור "שמור שיחה" לשמירת שיחה ל-RTF.
+\par
+- {\b ReportsTab.java:} כפתורי דוחות - מכירות לפי סניף, מוצר, קטגוריה, יומי. פותח ReportViewWindow.
+\par
+- {\b ChatTab.java:} ממשק צ'אט - רשימת בקשות ממתינות, צ'אטים פעילים, אזור הודעות, שליחת הודעה. כפתורים: בקש צ'אט, בטל בקשה, קבל בקשה, הצטרף (מנהל), סיים צ'אט. רענון אוטומטי כל 3 שניות.
+\par\par
+
+{\b תיקיית src/gui/dialogs/:\par}
+9 דיאלוגים לפעולות CRUD:
+\par
+- AddCustomerDialog, UpdateCustomerDialog
+\par
+- AddProductDialog, AddToInventoryDialog
+\par
+- CreateUserDialog, UpdateUserDialog
+\par
+- CreateEmployeeDialog, UpdateEmployeeDialog
+\par
+- SellProductDialog
+\par\par
+
+{\b תיקיית src/gui/windows/:\par}
+- {\b ReportViewWindow.java:} חלון להצגת דוחות - טבלה עם נתונים, כפתור "ייצא ל-Word" (RTF). מפרסר JSON ידנית, יוצר קובץ RTF עם תמיכה בעברית (Unicode escape).
+\par\par
+
+{\b תיקיית src/storage/:\par}
+- {\b StorageManager.java:} מנהל שמירה וטעינה - saveUsers(), loadUsers(), saveEmployees(), loadEmployees(), וכו'. משתמש ב-JsonSerializer.
+\par
+- {\b JsonSerializer.java:} המרה ידנית ל-JSON (ללא ספריות חיצוניות) - toJson(), fromJsonUsers(), fromJsonEmployees(), וכו'. משתמש ב-string manipulation ו-Regular Expressions לפרסור.
+\par
+- {\b *Data.java:} מחלקות DTO - CustomerData, EmployeeData, ProductData, SaleData, UserData. המרה בין Model ל-DTO (toCustomer(), toEmployee(), וכו').
+\par\par
+
+{\b תיקיית data/:\par}
+קבצי JSON לשמירת נתונים:
+\par
+- users.json, employees.json, customers.json, products.json, inventory.json, sales.json, logs.json, branches.json
+\par\par
+
+{\b\fs24 חלק 3: הסבר מפורט על קבצים מרכזיים\par}
+\par
+
+{\b SystemController.java:\par}
+{\b תפקיד:} נקודת הכניסה המרכזית - מתווך בין GUI/Server ל-Managers.
+\par
+{\b משתני instance:} כל ה-Managers (CustomerManager, InventoryManager, SalesManager, LogManager, ProductManager, BranchManager, AuthenticationManager, SessionManager, EmployeeManager, ChatManager), StorageManager.
+\par
+{\b מתודות עיקריות:}
+\par
+- {\b loadAllData():} טוען כל הנתונים מהשמירה (users, employees, customers, products, branches, inventory, sales, logs).
+\par
+- {\b saveAllData():} שומר כל הנתונים לשמירה.
+\par
+- {\b login():} אימות משתמש, יצירת Session, רישום לוג.
+\par
+- {\b logout():} הסרת Session, רישום לוג.
+\par
+- {\b addCustomer():} הוספת לקוח דרך CustomerManager, רישום לוג, שמירה.
+\par
+- {\b sellProduct():} מכירת מוצר - שליפת מוצר, סניף, לקוח, מכירה מהמלאי, חישוב מחיר לפי סוג לקוח (פולימורפיזם), יצירת Sale, רישום לוג.
+\par
+- {\b requestChat():} בקשה לצ'אט דרך ChatManager, רישום לוג.
+\par
+- {\b sendChatMessage():} שליחת הודעה בצ'אט, רישום לוג.
+\par
+- {\b endChat():} סיום צ'אט, רישום לוג.
+\par
+- {\b joinChatAsManager():} מנהל מצטרף לצ'אט, רישום לוג.
+\par
+- {\b getSalesReportByBranch():} דוח מכירות לפי סניף - איסוף מכירות, סיכום לפי branchId.
+\par
+- {\b saveChatToRTF():} שמירת שיחה ל-RTF - איסוף לוגים והודעות, יצירת קובץ RTF עם תמיכה בעברית.
+\par
+{\b החלטות עיצוב:} SystemController משמש כ-Facade - מספק API אחיד ופשוט, מסתיר את המורכבות של ה-Managers. כל פעולה כוללת לוג ושמירה אוטומטית.
+\par\par
+
+{\b ChatManager.java:\par}
+{\b תפקיד:} מנהל מערכת הצ'אט - צ'אטים פעילים, תורים, מצבי משתמשים.
+\par
+{\b משתני instance:}
+\par
+- activeChats: Map<String, ChatSession> - צ'אטים פעילים
+\par
+- chatQueue: Queue<ChatRequest> - תור בקשות (FIFO)
+\par
+- userStatus: Map<String, ChatUserStatus> - מצב כל משתמש
+\par
+- pendingRequests: Map<String, ChatRequest> - בקשות ממתינות
+\par
+- chatMessages: Map<String, List<ChatMessage>> - הודעות כל צ'אט
+\par
+- userToChat: Map<String, String> - username -> chatId
+\par
+- waitingForUser: Map<String, Queue<ChatRequest>> - בקשות ממתינות לפי סניף
+\par
+{\b מתודות עיקריות:}
+\par
+- {\b requestChat():} משתמש מבקש צ'אט - בדיקה אם כבר בשיחה/תור, יצירת ChatRequest, הוספה לתור, ניסיון התאמה מיידית (matchUsers()), אם לא נמצאה - שמירה בתור הסניף.
+\par
+- {\b matchUsers():} התאמה FIFO - לוקח בקשה ראשונה בתור, מחפש משתמש פנוי מסניף אחר, יוצר ChatSession, מעדכן מצבים, מסיר מהתור.
+\par
+- {\b createChatSession():} יצירת צ'אט ישיר (ללא תור) - יוצר ChatSession, מעדכן מצבים.
+\par
+- {\b addMessage():} הוספת הודעה לצ'אט - בדיקה שהצ'אט פעיל והמשתמש משתתף, יצירת ChatMessage, הוספה לרשימה.
+\par
+- {\b endChat():} סיום צ'אט - עדכון ChatSession ל-ENDED, עדכון מצבי משתמשים ל-AVAILABLE, ניסיון התאמה חדשה.
+\par
+- {\b joinChatAsManager():} מנהל מצטרף - בדיקה שהמשתמש הוא מנהל (role=manager), הוספה למשתתפים, הודעת מערכת.
+\par
+- {\b acceptChatRequest():} משתמש מאשר בקשה - חיפוש הבקשה בתור של הסניף השני, יצירת צ'אט, עדכון מצבים.
+\par
+{\b החלטות עיצוב:} Queue Pattern (Producer-Consumer) - משתמשים מבקשים צ'אט (Producer), matchUsers() מחפש התאמות (Consumer). FIFO מבטיח הוגנות. ConcurrentHashMap ו-LinkedBlockingQueue ל-Thread-safety.
+\par\par
+
+{\b StorageManager.java + JsonSerializer.java:\par}
+{\b תפקיד:} שמירה וטעינה של נתונים לקבצי JSON.
+\par
+{\b StorageManager:} מנהל קבצי JSON - saveUsers(), loadUsers(), וכו'. יוצר תיקיית data/ אם לא קיימת.
+\par
+{\b JsonSerializer:} המרה ידנית ל-JSON ללא ספריות חיצוניות.
+\par
+{\b toJson():} המרת אובייקט ל-JSON - מטפל ב-Map, List, String, Number, Boolean, Object (דרך toJsonObject()).
+\par
+{\b fromJson*():} פרסור JSON - משתמש ב-Regular Expressions ו-string manipulation. parseMap() ו-parseList() לפרסור מבנים מורכבים.
+\par
+{\b החלטות עיצוב:} JSON Manual Serialization במקום Gson/Jackson - אין תלויות חיצוניות, שליטה מלאה בפורמט, פשטות. DTO Classes להפרדת concerns - לא לשמור סיסמאות ישירות, שליטה על שדות.
+\par\par
+
+{\b ClientHandler.java:\par}
+{\b תפקיד:} טיפול בכל לקוח בנפרד - קורא פקודות, מנתב ל-SystemController, שולח תגובות.
+\par
+{\b משתני instance:} socket, controller, currentSession, isAuthenticated.
+\par
+{\b מתודות עיקריות:}
+\par
+- {\b run():} לולאה ראשית - קורא שורות מהלקוח, קורא ל-handleCommand(), שולח תגובה.
+\par
+- {\b handleCommand():} מטפל ב-LOGIN/LOGOUT, מנתב פקודות אחרות ל-handleAuthenticatedCommand().
+\par
+- {\b handleAuthenticatedCommand():} switch על פקודה - ADD_CUSTOMER, SELL, REQUEST_CHAT, וכו'. כל case מנתב ל-SystemController, מחזיר תגובה בפורמט "OK;..." או "ERROR;...".
+\par
+{\b פרוטוקול תקשורת:} פקודות מופרדות ב-";" - "COMMAND;param1;param2;...". תגובות: "OK;..." או "ERROR;..." או "AUTH_ERROR;...".
+\par
+{\b החלטות עיצוב:} Thread-per-Client במקום NIO - פשטות, מתאים למספר לקוחות מוגבל, קל לדיבוג. פרוטוקול טקסט פשוט במקום JSON/XML - קל לקריאה ודיבוג.
+\par\par
+
+{\b SessionManager.java:\par}
+{\b תפקיד:} ניהול סשנים פעילים - מניעת התחברות כפולה.
+\par
+{\b משתני instance:} activeSessions (username -> Session), sessionsBySocket (socket -> Session).
+\par
+{\b מתודות עיקריות:}
+\par
+- {\b createSession():} יצירת סשן חדש - בדיקה אם המשתמש כבר מחובר (activeSessions.containsKey()), אם כן - זורק UserAlreadyLoggedInException. יוצר Session, מוסיף ל-Maps.
+\par
+- {\b removeSession():} הסרת סשן - הסרה מ-sessionsBySocket ו-activeSessions.
+\par
+- {\b getSession():} שליפת סשן לפי socket.
+\par
+- {\b getSessionByUsername():} שליפת סשן לפי username.
+\par
+{\b החלטות עיצוב:} ConcurrentHashMap ל-Thread-safety - מספר Threads מטפלים בלקוחות שונים. שני Maps - אחד לפי username (לבדיקה מהירה), אחד לפי socket (לשליפה לפי חיבור).
+\par\par
+
+{\b מחלקות Customer (Template Method Pattern):\par}
+{\b Customer.java:} מחלקה abstract - fullName, idNumber, phone, calculatePrice() abstract.
+\par
+{\b NewCustomer.java:} calculatePrice() מחזיר basePrice (ללא הנחה).
+\par
+{\b ReturningCustomer.java:} calculatePrice() מחזיר basePrice * 0.95 (5% הנחה).
+\par
+{\b VipCustomer.java:} calculatePrice() מחזיר basePrice * 0.85 (15% הנחה).
+\par
+{\b החלטות עיצוב:} Template Method Pattern - Customer מגדיר את המבנה (calculatePrice() abstract), כל סוג לקוח מממש את החישוב שלו. פולימורפיזם - SystemController.sellProduct() קורא ל-customer.calculatePrice() בלי לדעת את הסוג הספציפי.
+\par\par
+
+{\b\fs24 חלק 4: החלטות עיצוב והסברים\par}
+\par
+
+{\b 1. JSON Manual Serialization - למה לא Gson/Jackson?\par}
+{\b החלטה:} JSON Manual Serialization ללא ספריות חיצוניות.
+\par
+{\b סיבות:}
+\par
+- אין תלויות חיצוניות - הפרויקט עומד בפני עצמו, לא צריך JARs נוספים
+\par
+- שליטה מלאה בפורמט - יודעים בדיוק מה נשמר ואיך
+\par
+- פשטות - לא צריך ללמוד API של ספרייה חיצונית
+\par
+- גודל קטן - אין JARs נוספים
+\par
+{\b חסרונות:} קוד מורכב יותר, פחות יעיל, לא תומך בכל תכונות JSON (nested objects מורכבים).
+\par\par
+
+{\b 2. Manager Pattern - למה לא DAO או Repository?\par}
+{\b החלטה:} Manager Pattern - מחלקות Manager מנהלות לוגיקה עסקית ונתונים.
+\par
+{\b סיבות:}
+\par
+- הפרדה בין לוגיקה עסקית לנתונים - Manager מכיל גם לוגיקה (למשל CustomerManager יוצר לקוחות מסוגים שונים)
+\par
+- קל להרחבה - הוספת Manager חדש פשוטה
+\par
+- ניהול state מרכזי - כל Manager שומר את הנתונים שלו ב-Map
+\par
+- פשטות - לא צריך Interface או Abstract Class
+\par
+{\b חסרונות:} פחות גמיש מ-Repository Pattern, קשה לבדיקות (Unit Tests) כי Managers תלויים זה בזה.
+\par\par
+
+{\b 3. Thread-per-Client - למה לא NIO או Thread Pool?\par}
+{\b החלטה:} Thread-per-Client - כל לקוח מקבל Thread נפרד.
+\par
+{\b סיבות:}
+\par
+- פשטות - קל להבין ולדבג, כל Thread מטפל בלקוח אחד
+\par
+- מתאים למספר לקוחות מוגבל - המערכת מיועדת למספר עובדים מוגבל (לא אלפי משתמשים)
+\par
+- קל לדיבוג - כל Thread עצמאי, קל לעקוב אחרי בעיות
+\par
+{\b חסרונות:} לא מתאים למספר גדול של לקוחות (כל Thread תופס משאבים), פחות יעיל מ-NIO.
+\par\par
+
+{\b 4. ConcurrentHashMap - למה לא synchronized?\par}
+{\b החלטה:} ConcurrentHashMap במקום synchronized blocks.
+\par
+{\b סיבות:}
+\par
+- ביצועים טובים יותר - ConcurrentHashMap מותאם ל-multi-threading, לא חוסם את כל ה-Map
+\par
+- Thread-safe - מבטיח thread-safety ללא synchronized
+\par
+- מתאים ל-multi-threaded server - מספר Threads קוראים וכותבים בו-זמנית
+\par
+{\b חסרונות:} לא תומך ב-operations מורכבים (למשל check-and-update) - צריך external synchronization.
+\par\par
+
+{\b 5. Queue Pattern לצ'אט - למה FIFO?\par}
+{\b החלטה:} LinkedBlockingQueue עם FIFO (First In First Out).
+\par
+{\b סיבות:}
+\par
+- הוגנות - מי שביקש ראשון מקבל ראשון
+\par
+- פשטות - Queue פשוט, קל להבין
+\par
+- מתאים לדרישות - דרישה מפורשת ל-FIFO
+\par
+{\b חסרונות:} לא מתאים לכל מקרה - לפעמים Priority Queue עדיף (למשל לפי חשיבות).
+\par\par
+
+{\b 6. DTO Classes - למה לא serialize ישירות?\par}
+{\b החלטה:} מחלקות DTO (CustomerData, EmployeeData, וכו') להמרה בין Model ל-JSON.
+\par
+{\b סיבות:}
+\par
+- הפרדת concerns - Model לא תלוי בפורמט השמירה
+\par
+- שליטה על שדות - בוחרים מה לשמור (למשל לא לשמור סיסמאות ישירות)
+\par
+- אבטחה - לא לשמור מידע רגיש (סיסמאות) או מידע מיותר
+\par
+- גמישות - קל לשנות פורמט השמירה בלי לשנות את Model
+\par
+{\b חסרונות:} קוד נוסף, צריך לשמור sync בין Model ל-DTO.
+\par\par
+
+{\b 7. Custom Exceptions - למה לא RuntimeException?\par}
+{\b החלטה:} 12 מחלקות exceptions מותאמות אישית.
+\par
+{\b סיבות:}
+\par
+- Type safety - כל Exception מייצג מצב ספציפי, קל לטפל
+\par
+- חובת טיפול - checked exceptions מחייבים טיפול (try-catch)
+\par
+- קוד נקי יותר - לא צריך לבדוק error codes או messages
+\par
+- מידע מדויק - כל Exception מכיל מידע רלוונטי
+\par
+{\b חסרונות:} קוד נוסף, צריך לטפל בהרבה exceptions.
+\par\par
+
+{\b 8. RTF Manual Export - למה לא Apache POI?\par}
+{\b החלטה:} יצירת RTF ידנית ללא ספריות חיצוניות.
+\par
+{\b סיבות:}
+\par
+- אין תלויות - לא צריך JARs נוספים
+\par
+- תמיכה בעברית - RTF תומך ב-Unicode escape (\uXXXX?) לעברית
+\par
+- פשטות - RTF הוא פורמט טקסט, קל ליצור
+\par
+- גודל קטן - אין JARs נוספים
+\par
+{\b חסרונות:} לא תומך בכל תכונות RTF (tables מורכבים, תמונות), קוד מורכב יותר.
+\par\par
+
+{\b 9. Template Method Pattern ב-Customer - למה לא Strategy?\par}
+{\b החלטה:} Customer abstract עם calculatePrice() abstract (Template Method).
+\par
+{\b סיבות:}
+\par
+- פשטות - לא צריך Strategy interface או Context
+\par
+- פולימורפיזם טבעי - Customer הוא סוג הלקוח, לא צריך wrapper
+\par
+- קל להרחבה - הוספת סוג לקוח חדש = מחלקה חדשה
+\par
+{\b חסרונות:} פחות גמיש מ-Strategy - לא ניתן לשנות algorithm בזמן ריצה.
+\par\par
+
+{\b 10. פרוטוקול טקסט פשוט - למה לא JSON/XML?\par}
+{\b החלטה:} פרוטוקול טקסט עם פקודות מופרדות ב-";".
+\par
+{\b סיבות:}
+\par
+- פשטות - קל לקריאה ודיבוג, לא צריך parser
+\par
+- מהירות - לא צריך לפרסר JSON/XML
+\par
+- קל למימוש - string manipulation פשוט
+\par
+{\b חסרונות:} לא תומך במבנים מורכבים, לא standard, קשה להרחבה.
+\par\par
+
+{\b\fs24 חלק 5: דיאגרמות\par}
+\par
+
+{\b דיאגרמת ארכיטקטורה כללית:\par}
+Client (Swing GUI) <--Socket--> Server (ServerMain) --> ClientHandler (Thread) --> SystemController --> Managers --> Model Classes
+\par\par
+
+{\b דיאגרמת תקשורת:\par}
+Client: sendCommand("LOGIN;user;pass") --> Server: handleCommand() --> SystemController.login() --> Response: "LOGIN_SUCCESS;ADMIN;B1;EMP001" --> Client: handleLoginResponse()
+\par\par
+
+{\b דיאגרמת צ'אט (Queue Matching):\par}
+User A (Branch 1) requests chat --> ChatManager.requestChat() --> Added to chatQueue --> matchUsers() finds User B (Branch 2) available --> Creates ChatSession --> Returns "OK;MATCHED;CHAT_123;userA;userB"
+\par
+If no match: Added to waitingForUser[Branch1] --> When User B becomes available: Gets notification --> acceptChatRequest() --> Creates ChatSession
+\par\par
+
+{\b דיאגרמת שמירה/טעינה:\par}
+SystemController.saveAllData() --> StorageManager.saveUsers() --> JsonSerializer.toJson() --> Write to data/users.json
+\par
+SystemController.loadAllData() --> StorageManager.loadUsers() --> JsonSerializer.fromJsonUsers() --> Read from data/users.json --> Create User objects
+\par\par
+
+{\b דיאגרמת מחלקות Customer (Inheritance):\par}
+Customer (abstract) --> NewCustomer, ReturningCustomer, VipCustomer
+\par
+Customer: calculatePrice() abstract
+\par
+NewCustomer: calculatePrice() returns basePrice
+\par
+ReturningCustomer: calculatePrice() returns basePrice * 0.95
+\par
+VipCustomer: calculatePrice() returns basePrice * 0.85
+\par\par
+
+{\b\fs24 סיכום\par}
+\par
+
+המערכת בנויה בארכיטקטורה נקייה ומסודרת עם הפרדה ברורה בין שכבות. השימוש בתבניות עיצוב (Manager, Factory, Template Method, Queue) מבטיח קוד קריא וניתן לתחזוקה. החלטות העיצוב (JSON Manual, Thread-per-Client, ConcurrentHashMap, וכו') מתאימות למטרת המערכת - מערכת פנימית למספר משתמשים מוגבל, ללא תלויות חיצוניות, עם שליטה מלאה על הקוד.
+\par\par
+
+{\b סה"כ קבצים:\par}
+- Model: ~25 קבצים
+- Managers: 10 קבצים
+- Exceptions: 12 קבצים
+- GUI: ~20 קבצים
+- Server: 2 קבצים
+- Storage: 7 קבצים
+- Controller: 1 קובץ
+\par
+סה"כ: ~77 קבצי Java
+\par\par
+
+}

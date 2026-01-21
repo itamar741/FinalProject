@@ -8,33 +8,35 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג לביצוע מכירה
+ * Dialog for performing a product sale.
+ * Calculates price based on customer type (polymorphism) and allows sale execution.
+ * Employee number is automatically determined from the logged-in user.
+ * For admin: allows selecting branch.
+ * 
+ * @author FinalProject
  */
 public class SellProductDialog extends JDialog {
     
     private ClientConnection connection;
     private MainWindow mainWindow;
-    private String userType;
+    private String role;
     private String branchId;
-    private String employeeNumber;
     
     private JTextField productIdField;
     private JTextField quantityField;
     private JComboBox<String> branchCombo;  // Admin only
-    private JTextField employeeNumberField;  // Admin only
     private JTextField customerIdField;
     private JLabel priceLabel;
     private JButton calculateButton;
     private JButton sellButton;
     private JButton cancelButton;
     
-    public SellProductDialog(MainWindow parent, ClientConnection connection, String userType, String branchId, String employeeNumber) {
+    public SellProductDialog(MainWindow parent, ClientConnection connection, String role, String branchId) {
         super(parent, "ביצוע מכירה", true);
         this.connection = connection;
         this.mainWindow = parent;
-        this.userType = userType;
+        this.role = role;
         this.branchId = branchId;
-        this.employeeNumber = employeeNumber;
         
         setSize(450, 350);
         setLocationRelativeTo(parent);
@@ -74,7 +76,7 @@ public class SellProductDialog extends JDialog {
         mainPanel.add(quantityField, gbc);
         
         // סניף (Admin יכול לבחור, Employee - קבוע)
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role)) {
             gbc.gridx = 0;
             gbc.gridy = 2;
             gbc.fill = GridBagConstraints.NONE;
@@ -102,38 +104,9 @@ public class SellProductDialog extends JDialog {
             mainPanel.add(branchLabel, gbc);
         }
         
-        // מספר עובד (Admin יכול לבחור, Employee - קבוע)
-        if (userType.equals("ADMIN")) {
-            gbc.gridx = 0;
-            gbc.gridy = 3;
-            gbc.fill = GridBagConstraints.NONE;
-            gbc.weightx = 0;
-            mainPanel.add(new JLabel("מספר עובד:"), gbc);
-            
-            gbc.gridx = 1;
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.weightx = 1.0;
-            employeeNumberField = new JTextField(20);
-            mainPanel.add(employeeNumberField, gbc);
-        } else {
-            gbc.gridx = 0;
-            gbc.gridy = 3;
-            gbc.fill = GridBagConstraints.NONE;
-            gbc.weightx = 0;
-            mainPanel.add(new JLabel("מספר עובד:"), gbc);
-            
-            gbc.gridx = 1;
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.weightx = 1.0;
-            // Employee number יועבר מהשרת, נציג פה placeholder
-            JLabel empLabel = new JLabel("(מספר עובד שלך)");
-            empLabel.setForeground(Color.GRAY);
-            mainPanel.add(empLabel, gbc);
-        }
-        
         // ת.ז. לקוח
         gbc.gridx = 0;
-        gbc.gridy = 4;
+        gbc.gridy = 3;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         mainPanel.add(new JLabel("ת.ז. לקוח:"), gbc);
@@ -146,7 +119,7 @@ public class SellProductDialog extends JDialog {
         
         // מחיר (יוצג אחרי חישוב)
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 4;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         mainPanel.add(new JLabel("מחיר סופי:"), gbc);
@@ -258,23 +231,13 @@ public class SellProductDialog extends JDialog {
     private void performSale() {
         String productId = productIdField.getText().trim();
         String quantityStr = quantityField.getText().trim();
-        String selectedBranchId = userType.equals("ADMIN") ? 
+        String selectedBranchId = "admin".equals(role) ? 
                 (String) branchCombo.getSelectedItem() : branchId;
-        String empNum = userType.equals("ADMIN") ? 
-                employeeNumberField.getText().trim() : this.employeeNumber;
         String customerId = customerIdField.getText().trim();
         
         if (productId.isEmpty() || quantityStr.isEmpty() || customerId.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
-                    "שגיאה",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        if (empNum == null || empNum.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "מספר עובד לא זמין",
                     "שגיאה",
                     JOptionPane.WARNING_MESSAGE);
             return;
@@ -290,7 +253,8 @@ public class SellProductDialog extends JDialog {
                 return;
             }
             
-            String command = "SELL;" + productId + ";" + quantity + ";" + selectedBranchId + ";" + empNum + ";" + customerId;
+            // Employee number is automatically determined by the server from the logged-in user
+            String command = "SELL;" + productId + ";" + quantity + ";" + selectedBranchId + ";" + customerId;
             String response = connection.sendCommand(command);
             
             if (response.startsWith("OK")) {

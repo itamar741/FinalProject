@@ -1,0 +1,50 @@
+{
+  "new": {
+    "username": "new",
+    "password": "111111",
+    "role": "manager",
+    "branchId": "B1",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "manager2b2": {
+    "username": "manager2b2",
+    "password": "manager2b2",
+    "role": "manager",
+    "branchId": "B2",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "manager1B1": {
+    "username": "manager1B1",
+    "password": "manager1B1",
+    "role": "manager",
+    "branchId": "B1",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "admin": {
+    "username": "admin",
+    "password": "admin",
+    "role": "admin",
+    "branchId": "ALL",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "cashier1b1": {
+    "username": "cashier1b1",
+    "password": "cashier1b1",
+    "role": "cashier",
+    "branchId": "B1",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "salesman1b1": {
+    "username": "salesman1b1",
+    "password": "salesman1b1",
+    "role": "salesman",
+    "branchId": "B1",
+    "active": true,
+    "mustChangePassword": false
+  }
+}

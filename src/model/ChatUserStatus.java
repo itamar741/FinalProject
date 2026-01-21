@@ -1,10 +1,18 @@
 package model;
 
 /**
- * מצב משתמש במערכת הצ'אט
+ * Enumeration of possible user statuses in the chat system.
+ * Used by ChatManager to track user availability and prevent duplicate chat requests.
+ * 
+ * @author FinalProject
  */
 public enum ChatUserStatus {
-    AVAILABLE,    // פנוי - יכול לקבל בקשות צ'אט
-    IN_CHAT,      // בשיחה פעילה
-    IN_QUEUE      // ממתין בתור
+    /** User is available and can accept chat requests */
+    AVAILABLE,
+    
+    /** User is currently in an active chat session */
+    IN_CHAT,
+    
+    /** User is waiting in the queue for a chat match */
+    IN_QUEUE
 }

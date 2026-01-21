@@ -2,8 +2,6 @@ package gui;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
@@ -39,6 +37,9 @@ public class LoginWindow extends JFrame {
         }
     }
     
+    /**
+     * Creates the login UI with username, password fields, and login button.
+     */
     private void createUI() {
         setLayout(new BorderLayout(10, 10));
         
@@ -90,6 +91,10 @@ public class LoginWindow extends JFrame {
         add(mainPanel, BorderLayout.CENTER);
     }
     
+    /**
+     * Performs login attempt.
+     * Validates input, sends login command to server, and handles response.
+     */
     private void performLogin() {
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
@@ -136,15 +141,14 @@ public class LoginWindow extends JFrame {
         if (parts[0].equals("LOGIN_SUCCESS")) {
             // התחברות מוצלחת
             String username = usernameField.getText().trim();
-            String userType = parts[1];  // ADMIN או EMPLOYEE
+            String role = parts[1];  // admin, manager, salesman, cashier
             String branchId = parts.length > 2 ? parts[2] : null;
-            String employeeNumber = parts.length > 3 ? parts[3] : null;
             
             // פתיחת חלון ראשי
             String finalUsername = username;
             loginSuccessful = true;  // מסמן שההתחברות הצליחה
             SwingUtilities.invokeLater(() -> {
-                MainWindow mainWindow = new MainWindow(connection, finalUsername, userType, branchId, employeeNumber);
+                MainWindow mainWindow = new MainWindow(connection, finalUsername, role, branchId);
                 mainWindow.setVisible(true);
                 this.dispose(); // סגירת חלון ההתחברות (בלי לנתק את ה-connection)
             });

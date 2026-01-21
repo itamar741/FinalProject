@@ -20,7 +20,16 @@ import model.ChatMessage;
 import model.ChatSession;
 import model.ChatUserStatus;
 import model.ChatRequest;
+import model.managers.PermissionChecker;
 
+/**
+ * Handles communication with a single client.
+ * Implements Runnable for Thread-per-Client architecture.
+ * Reads commands from the client, routes them to SystemController, and sends responses.
+ * Uses a simple text protocol with commands separated by semicolons.
+ * 
+ * @author FinalProject
+ */
 public class ClientHandler implements Runnable {
 
     private final Socket socket;
@@ -28,11 +37,23 @@ public class ClientHandler implements Runnable {
     private Session currentSession;
     private boolean isAuthenticated = false;
 
+    /**
+     * Constructs a new ClientHandler for a client connection.
+     * 
+     * @param socket the socket connection to the client
+     * @param controller the SystemController to route commands to
+     */
     public ClientHandler(Socket socket, SystemController controller) {
         this.socket = socket;
         this.controller = controller;
     }
 
+    /**
+     * Main run loop for handling client communication.
+     * Reads commands from the client, processes them, and sends responses.
+     * Handles authentication and routes authenticated commands to appropriate handlers.
+     * Automatically logs out the user when connection is closed.
+     */
     @Override
     public void run() {
         try (
@@ -69,7 +90,9 @@ public class ClientHandler implements Runnable {
                          InactiveProductException |
                          WeakPasswordException |
                          UserNotFoundException |
-                         EmployeeNotFoundException e) {
+                         EmployeeNotFoundException |
+                         InvalidIdNumberException |
+                         InvalidPhoneException e) {
                     out.println("ERROR;" + e.getMessage());
                 }
             }
@@ -84,6 +107,14 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     * Handles a command from the client.
+     * Parses the command string and routes to appropriate handler.
+     * 
+     * @param line the command line from the client (format: "COMMAND;param1;param2;...")
+     * @return the response string to send to the client
+     * @throws various exceptions depending on the command and operation result
+     */
     private String handleCommand(String line)
             throws DuplicateCustomerException,
             DuplicateUserException,
@@ -96,7 +127,10 @@ public class ClientHandler implements Runnable {
             UnauthorizedException,
             WeakPasswordException,
             UserNotFoundException,
-            EmployeeNotFoundException {
+            EmployeeNotFoundException,
+            InvalidIdNumberException,
+            InvalidPhoneException,
+            IOException {
         
         String[] parts = line.split(";");
         
@@ -107,7 +141,7 @@ public class ClientHandler implements Runnable {
                 }
                 currentSession = controller.login(parts[1], parts[2], socket);
                 isAuthenticated = true;
-                return "LOGIN_SUCCESS;" + currentSession.getUserType() + ";" + currentSession.getBranchId() + ";" + currentSession.getEmployeeNumber();
+                return "LOGIN_SUCCESS;" + currentSession.getRole() + ";" + currentSession.getBranchId();
             
             case "LOGOUT":
                 controller.logout(socket);
@@ -137,14 +171,18 @@ public class ClientHandler implements Runnable {
         UnauthorizedException,
         WeakPasswordException,
         UserNotFoundException,
-        EmployeeNotFoundException {
+        EmployeeNotFoundException,
+        InvalidIdNumberException,
+        InvalidPhoneException,
+        IOException {
 
     if (currentSession == null) {
         throw new UnauthorizedException("Session expired");
     }
 
     String[] parts = line.split(";");
-    String userType = currentSession.getUserType();  // שונה מ-getRole()
+    String role = currentSession.getRole();
+    String userBranchId = currentSession.getBranchId();
 
     switch (parts[0]) {
         case "ADD_CUSTOMER": {
@@ -222,8 +260,7 @@ public class ClientHandler implements Runnable {
             String requestedBranchId = parts[3];
             
             // בדיקה: EMPLOYEE יכול להוסיף רק לסניף שלו
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getBranchId().equals(requestedBranchId)) {
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only add products to your own branch (" + currentSession.getBranchId() + "). Only ADMIN can add to any branch");
             }
             
@@ -259,8 +296,7 @@ public class ClientHandler implements Runnable {
             String requestedBranchId = parts[6];
             
             // בדיקה: EMPLOYEE יכול להוסיף רק לסניף שלו
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getBranchId().equals(requestedBranchId)) {
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only add products to your own branch (" + currentSession.getBranchId() + "). Only ADMIN can add to any branch");
             }
             
@@ -316,10 +352,9 @@ public class ClientHandler implements Runnable {
             
             String requestedBranchId = parts[3];
             
-            // בדיקה: EMPLOYEE יכול להסיר רק מהסניף שלו
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getBranchId().equals(requestedBranchId)) {
-                throw new UnauthorizedException("You can only remove products from your own branch (" + currentSession.getBranchId() + "). Only ADMIN can remove from any branch");
+            // בדיקה: רק admin יכול להסיר מסניפים אחרים
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
+                throw new UnauthorizedException("You can only remove products from your own branch (" + userBranchId + "). Only admin can remove from any branch");
             }
             
             // בדיקת תקינות כמות
@@ -348,9 +383,9 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("DELETE_PRODUCT requires: productId");
             }
             
-            // רק ADMIN יכול למחוק מוצר
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can delete products");
+            // רק admin יכול למחוק מוצר
+            if (!PermissionChecker.canDeleteProduct(role)) {
+                throw new UnauthorizedException("Only admin can delete products");
             }
             
             controller.deleteProduct(parts[1]);
@@ -386,8 +421,8 @@ public class ClientHandler implements Runnable {
 
         case "SELL":
             // בדיקת פרמטרים
-            if (parts.length < 6) {
-                throw new IllegalArgumentException("SELL requires: productId;quantity;branchId;employeeNumber;customerId");
+            if (parts.length < 5) {
+                throw new IllegalArgumentException("SELL requires: productId;quantity;branchId;customerId");
             }
             
             // ADMIN ו-EMPLOYEE יכולים למכור
@@ -395,18 +430,14 @@ public class ClientHandler implements Runnable {
             
             String sellBranchId = parts[3];
             
-            // בדיקה: EMPLOYEE יכול למכור רק בסניף שלו
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getBranchId().equals(sellBranchId)) {
-                throw new UnauthorizedException("You can only sell products from your own branch (" + currentSession.getBranchId() + "). Only ADMIN can sell from any branch");
+            // בדיקה: רק admin יכול למכור מסניפים אחרים
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, sellBranchId)) {
+                throw new UnauthorizedException("You can only sell products from your own branch (" + userBranchId + "). Only admin can sell from any branch");
             }
             
-            // בדיקת employeeNumber - EMPLOYEE חייב להשתמש במספר שלו, ADMIN יכול להשתמש בכל מספר
-            String sellEmployeeNumber = parts[4];
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getEmployeeNumber().equals(sellEmployeeNumber)) {
-                throw new UnauthorizedException("You can only sell products under your own employee number (" + currentSession.getEmployeeNumber() + "). Only ADMIN can use any employee number");
-            }
+            // Get employee number automatically from logged-in user
+            String username = currentSession.getUsername();
+            String sellEmployeeNumber = controller.getEmployeeNumberByUsername(username, role);
             
             // בדיקת תקינות כמות
             int sellQuantity;
@@ -424,12 +455,42 @@ public class ClientHandler implements Runnable {
                     sellQuantity,
                     sellBranchId,
                     sellEmployeeNumber,
-                    parts[5]   // customerId
+                    parts[4]   // customerId
             );
             
             return "OK;Sale completed successfully";
 
         // ========== List Commands ==========
+        case "GET_DISCOUNTS": {
+            // כל המשתמשים המחוברים יכולים לראות אחוזי הנחה
+            Map<String, Double> discounts = controller.getAllDiscounts();
+            StringBuilder discountsList = new StringBuilder("OK;");
+            for (Map.Entry<String, Double> entry : discounts.entrySet()) {
+                discountsList.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
+            }
+            // הסרת נקודה-פסיק אחרון
+            if (discountsList.length() > 3) {
+                discountsList.setLength(discountsList.length() - 1);
+            }
+            return discountsList.toString();
+        }
+        
+        case "SET_DISCOUNT": {
+            // כל המשתמשים המחוברים יכולים לעדכן אחוזי הנחה
+            if (parts.length < 3) {
+                throw new IllegalArgumentException("SET_DISCOUNT requires: customerType;discountPercentage");
+            }
+            String customerType = parts[1];
+            double discountPercentage;
+            try {
+                discountPercentage = Double.parseDouble(parts[2]);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid discount percentage: " + parts[2]);
+            }
+            controller.setDiscount(customerType, discountPercentage);
+            return "OK;Discount updated successfully";
+        }
+        
         case "LIST_CUSTOMERS": {
             // כל המשתמשים המחוברים יכולים לראות לקוחות
             Map<String, Customer> customers = controller.getAllCustomersForDisplay();
@@ -455,17 +516,17 @@ public class ClientHandler implements Runnable {
             StringBuilder productsList = new StringBuilder("OK;");
             
             // קבלת branchId - אם ADMIN אז כל הסניפים, אחרת הסניף של המשתמש
-            String listBranchId = userType.equals("ADMIN") ? "ALL" : currentSession.getBranchId();
+            String listBranchId = PermissionChecker.canViewAllBranches(role) ? "ALL" : userBranchId;
             
             for (Product p : products.values()) {
-                // אם ADMIN, נציג את הסכום הכולל מכל הסניפים
+                // אם admin, נציג את הסכום הכולל מכל הסניפים
                 int quantity = 0;
-                if (userType.equals("ADMIN")) {
+                if (PermissionChecker.canViewAllBranches(role)) {
                     // סכום מכל הסניפים - נשתמש ב-ALL כסימן שצריך לסכם הכל
                     quantity = controller.getInventoryQuantity(p.getProductId(), "ALL");
                 } else {
                     // כמות בסניף של המשתמש
-                    quantity = controller.getInventoryQuantity(p.getProductId(), currentSession.getBranchId());
+                    quantity = controller.getInventoryQuantity(p.getProductId(), userBranchId);
                 }
                 
                 productsList.append(p.getProductId()).append(":")
@@ -487,9 +548,8 @@ public class ClientHandler implements Runnable {
             String requestedBranchId = parts[1];
             
             // בדיקה: EMPLOYEE יכול לראות רק את הסניף שלו
-            if (!userType.equals("ADMIN") && 
-                !currentSession.getBranchId().equals(requestedBranchId)) {
-                throw new UnauthorizedException("You can only view products from your own branch (" + currentSession.getBranchId() + "). Only ADMIN can view any branch");
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
+                throw new UnauthorizedException("You can only view products from your own branch (" + userBranchId + "). Only admin can view any branch");
             }
             
             // כל המשתמשים המחוברים יכולים לראות מוצרים
@@ -516,8 +576,8 @@ public class ClientHandler implements Runnable {
             String branchId = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
             
             // אם עובד, יכול לראות רק את הסניף שלו
-            if (!userType.equals("ADMIN") && (branchId == null || !branchId.equals(currentSession.getBranchId()))) {
-                branchId = currentSession.getBranchId();
+            if (!PermissionChecker.canViewAllBranches(role) && (branchId == null || !branchId.equals(userBranchId))) {
+                branchId = userBranchId;
             }
             
             List<ReportEntry> report = controller.getSalesReportByBranch(branchId);
@@ -592,8 +652,8 @@ public class ClientHandler implements Runnable {
             String branchId = (parts.length > 2 && !parts[2].isEmpty()) ? parts[2] : null;
             
             // אם עובד, יכול לראות רק את הסניף שלו
-            if (!userType.equals("ADMIN") && (branchId == null || !branchId.equals(currentSession.getBranchId()))) {
-                branchId = currentSession.getBranchId();
+            if (!PermissionChecker.canViewAllBranches(role) && (branchId == null || !branchId.equals(userBranchId))) {
+                branchId = userBranchId;
             }
             
             List<ReportEntry> report = controller.getDailySalesReport(date, branchId);
@@ -621,22 +681,20 @@ public class ClientHandler implements Runnable {
 
         // ========== Admin Commands - User Management ==========
         case "CREATE_USER":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can create users");
+            // Check permission: admin can create for any branch, cashier only for their branch
+            if (parts.length < 5) {
+                throw new IllegalArgumentException("CREATE_USER requires: username;password;role;branchId");
             }
-            if (parts.length < 6) {
-                throw new IllegalArgumentException("CREATE_USER requires: username;password;employeeNumber;userType;branchId");
+            String targetBranchId = parts[4];
+            if (!PermissionChecker.canCreateUser(role, userBranchId, targetBranchId)) {
+                throw new UnauthorizedException("You do not have permission to create users for branch " + targetBranchId);
             }
-            String createUserType = parts[4].toUpperCase();
-            if (!createUserType.equals("ADMIN") && !createUserType.equals("EMPLOYEE")) {
-                throw new IllegalArgumentException("UserType must be ADMIN or EMPLOYEE");
-            }
-            controller.createUser(parts[1], parts[2], parts[3], createUserType, parts[5]);
+            controller.createUser(parts[1], parts[2], parts[3], targetBranchId); // username, password, role, branchId
             return "OK;User created successfully";
 
         case "UPDATE_USER":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can update users");
+            if (!PermissionChecker.canManageUsers(role)) {
+                throw new UnauthorizedException("Only admin can update users");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("UPDATE_USER requires at least: username");
@@ -649,8 +707,8 @@ public class ClientHandler implements Runnable {
             return "OK;User updated successfully";
 
         case "SET_USER_ACTIVE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can activate/deactivate users");
+            if (!PermissionChecker.canManageUsers(role)) {
+                throw new UnauthorizedException("Only admin can activate/deactivate users");
             }
             if (parts.length < 3) {
                 throw new IllegalArgumentException("SET_USER_ACTIVE requires: username;active");
@@ -659,35 +717,34 @@ public class ClientHandler implements Runnable {
             return "OK;User status updated successfully";
 
         case "LIST_USERS":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can list users");
+            if (!PermissionChecker.canManageUsers(role)) {
+                throw new UnauthorizedException("Only admin can list users");
             }
             Map<String, User> users = controller.getAllUsers();
             StringBuilder usersList = new StringBuilder("OK;");
             for (User u : users.values()) {
                 usersList.append(u.getUsername()).append(":")
-                         .append(u.getUserType()).append(":")
-                         .append(u.getEmployeeNumber()).append(":")
+                         .append(u.getRole()).append(":")
                          .append(u.getBranchId()).append(":")
                          .append(u.isActive() ? "active" : "inactive").append("|");
             }
             return usersList.toString();
 
         case "GET_USER":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can get user details");
+            if (!PermissionChecker.canManageUsers(role)) {
+                throw new UnauthorizedException("Only admin can get user details");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("GET_USER requires: username");
             }
             User user = controller.getUser(parts[1]);
-            return "OK;" + user.getUsername() + ":" + user.getUserType() + ":" + 
-                   user.getEmployeeNumber() + ":" + user.getBranchId() + ":" + 
+            return "OK;" + user.getUsername() + ":" + user.getRole() + ":" + 
+                   user.getBranchId() + ":" + 
                    (user.isActive() ? "active" : "inactive");
 
         case "DELETE_USER":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can delete users");
+            if (!PermissionChecker.canManageUsers(role)) {
+                throw new UnauthorizedException("Only admin can delete users");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("DELETE_USER requires: username");
@@ -699,20 +756,24 @@ public class ClientHandler implements Runnable {
             controller.deleteUser(parts[1]);
             return "OK;User deleted successfully";
 
-        // ========== Admin Commands - Employee Management ==========
+        // ========== Admin and Cashier Commands - Employee Management ==========
         case "CREATE_EMPLOYEE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can create employees");
+            if (!PermissionChecker.canCreateEmployee(role)) {
+                throw new UnauthorizedException("Only admin and cashier can create employees");
             }
-            if (parts.length < 8) {
-                throw new IllegalArgumentException("CREATE_EMPLOYEE requires: fullName;idNumber;phone;bankAccount;employeeNumber;role;branchId");
+            if (parts.length < 10) {
+                throw new IllegalArgumentException("CREATE_EMPLOYEE requires: fullName;idNumber;phone;bankAccount;employeeNumber;username;password;role;branchId");
             }
-            controller.createEmployee(parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7]);
-            return "OK;Employee created successfully";
+            String employeeTargetBranchId = parts[9];
+            if (!PermissionChecker.canCreateEmployeeForBranch(role, userBranchId, employeeTargetBranchId)) {
+                throw new UnauthorizedException("You can only create employees for your own branch");
+            }
+            controller.createEmployee(parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7], parts[8], parts[9]);
+            return "OK;Employee and user created successfully";
 
         case "UPDATE_EMPLOYEE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can update employees");
+            if (!PermissionChecker.canManageEmployees(role)) {
+                throw new UnauthorizedException("Only admin can update employees");
             }
             if (parts.length < 7) {
                 throw new IllegalArgumentException("UPDATE_EMPLOYEE requires: employeeNumber;fullName;phone;bankAccount;role;branchId");
@@ -721,8 +782,8 @@ public class ClientHandler implements Runnable {
             return "OK;Employee updated successfully";
 
         case "SET_EMPLOYEE_ACTIVE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can activate/deactivate employees");
+            if (!PermissionChecker.canManageEmployees(role)) {
+                throw new UnauthorizedException("Only admin can activate/deactivate employees");
             }
             if (parts.length < 3) {
                 throw new IllegalArgumentException("SET_EMPLOYEE_ACTIVE requires: employeeNumber;active");
@@ -731,8 +792,8 @@ public class ClientHandler implements Runnable {
             return "OK;Employee status updated successfully";
 
         case "DELETE_EMPLOYEE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can delete employees");
+            if (!PermissionChecker.canManageEmployees(role)) {
+                throw new UnauthorizedException("Only admin can delete employees");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("DELETE_EMPLOYEE requires: employeeNumber");
@@ -741,8 +802,8 @@ public class ClientHandler implements Runnable {
             return "OK;Employee deleted successfully";
 
         case "LIST_EMPLOYEES":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can list employees");
+            if (!PermissionChecker.canViewEmployees(role)) {
+                throw new UnauthorizedException("Only admin and cashier can list employees");
             }
             Map<String, Employee> employees = controller.getAllEmployees();
             StringBuilder employeesList = new StringBuilder("OK;");
@@ -751,6 +812,7 @@ public class ClientHandler implements Runnable {
                              .append(emp.getFullName()).append(":")
                              .append(emp.getIdNumber()).append(":")
                              .append(emp.getPhone()).append(":")
+                             .append(emp.getBankAccount()).append(":")
                              .append(emp.getRole()).append(":")
                              .append(emp.getBranchId()).append(":")
                              .append(emp.isActive() ? "active" : "inactive").append("|");
@@ -758,8 +820,8 @@ public class ClientHandler implements Runnable {
             return employeesList.toString();
 
         case "GET_EMPLOYEE":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can get employee details");
+            if (!PermissionChecker.canManageEmployees(role)) {
+                throw new UnauthorizedException("Only admin can get employee details");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("GET_EMPLOYEE requires: employeeNumber");
@@ -771,26 +833,35 @@ public class ClientHandler implements Runnable {
                    employee.getBranchId() + ":" + (employee.isActive() ? "active" : "inactive");
 
         case "LIST_EMPLOYEES_BY_BRANCH":
-            if (!userType.equals("ADMIN")) {
-                throw new UnauthorizedException("Only ADMIN can list employees by branch");
+            if (!PermissionChecker.canViewEmployees(role)) {
+                throw new UnauthorizedException("Only admin and cashier can list employees by branch");
             }
             if (parts.length < 2) {
                 throw new IllegalArgumentException("LIST_EMPLOYEES_BY_BRANCH requires: branchId");
             }
-            Map<String, Employee> branchEmployees = controller.getEmployeesByBranch(parts[1]);
+            String requestedBranchId = parts[1];
+            // Cashier can only view their own branch
+            if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
+                throw new UnauthorizedException("You can only view employees from your own branch");
+            }
+            Map<String, Employee> branchEmployees = controller.getEmployeesByBranch(requestedBranchId);
             StringBuilder branchEmployeesList = new StringBuilder("OK;");
             for (Employee emp : branchEmployees.values()) {
                 branchEmployeesList.append(emp.getEmployeeNumber()).append(":")
                                    .append(emp.getFullName()).append(":")
+                                   .append(emp.getIdNumber()).append(":")
+                                   .append(emp.getPhone()).append(":")
+                                   .append(emp.getBankAccount()).append(":")
                                    .append(emp.getRole()).append(":")
+                                   .append(emp.getBranchId()).append(":")
                                    .append(emp.isActive() ? "active" : "inactive").append("|");
             }
             return branchEmployeesList.toString();
 
         case "REQUEST_CHAT": {
-            String username = currentSession.getUsername();
+            String requestChatUsername = currentSession.getUsername();
             String branchId = currentSession.getBranchId();
-            String result = controller.requestChat(username, branchId);
+            String result = controller.requestChat(requestChatUsername, branchId);
             return result;
         }
 
@@ -834,7 +905,7 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("END_CHAT requires: chatId");
             }
             String chatId = parts[1];
-            String username = currentSession.getUsername();
+            String endChatUsername = currentSession.getUsername();
             String branchId = currentSession.getBranchId();
             controller.endChat(chatId);
             
@@ -870,10 +941,14 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 throw new IllegalArgumentException("JOIN_CHAT requires: chatId");
             }
+            // Check permission: only admin and manager can join existing chats
+            if (!PermissionChecker.canJoinChat(role)) {
+                throw new UnauthorizedException("Only admin and manager can join existing chats");
+            }
             String chatId = parts[1];
-            String managerUsername = currentSession.getUsername();
-            controller.joinChatAsManager(chatId, managerUsername);
-            return "OK;Manager joined chat";
+            String joinChatUsername = currentSession.getUsername();
+            controller.joinChatAsManager(chatId, joinChatUsername);
+            return "OK;User joined chat";
         }
 
         case "GET_AVAILABLE_USERS": {
@@ -935,8 +1010,8 @@ public class ClientHandler implements Runnable {
         }
 
         case "CANCEL_CHAT_REQUEST": {
-            String username = currentSession.getUsername();
-            boolean cancelled = controller.cancelChatRequest(username);
+            String cancelRequestUsername = currentSession.getUsername();
+            boolean cancelled = controller.cancelChatRequest(cancelRequestUsername);
             if (cancelled) {
                 return "OK;Chat request cancelled";
             } else {
@@ -945,8 +1020,8 @@ public class ClientHandler implements Runnable {
         }
 
         case "GET_USER_CHAT": {
-            String username = currentSession.getUsername();
-            model.ChatSession chat = controller.getUserChat(username);
+            String getUserChatUsername = currentSession.getUsername();
+            model.ChatSession chat = controller.getUserChat(getUserChatUsername);
             if (chat == null) {
                 return "OK;NO_CHAT";
             }
@@ -961,8 +1036,8 @@ public class ClientHandler implements Runnable {
         }
 
         case "GET_USER_CHAT_STATUS": {
-            String username = currentSession.getUsername();
-            model.ChatUserStatus status = controller.getUserChatStatus(username);
+            String getUserChatStatusUsername = currentSession.getUsername();
+            model.ChatUserStatus status = controller.getUserChatStatus(getUserChatStatusUsername);
             return "OK;" + status.name();
         }
 

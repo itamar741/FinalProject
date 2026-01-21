@@ -7,6 +7,7 @@
     "quantity": 2,
     "branchId": "B1",
     "employeeNumber": "1",
+    "customerId": "",
     "dateTime": "2026-01-11T15:00:38.847727800",
     "basePrice": 140.00,
     "finalPrice": 140.00
@@ -19,6 +20,7 @@
     "quantity": 2,
     "branchId": "B2",
     "employeeNumber": "1",
+    "customerId": "",
     "dateTime": "2026-01-11T15:09:57.805671",
     "basePrice": 170.00,
     "finalPrice": 170.00
@@ -31,8 +33,48 @@
     "quantity": 3,
     "branchId": "B2",
     "employeeNumber": "1",
+    "customerId": "",
     "dateTime": "2026-01-11T15:17:17.462969900",
     "basePrice": 210.00,
     "finalPrice": 199.50
+  },
+  {
+    "productId": "9485033491",
+    "productName": "חולצה קצרה שחורה",
+    "productCategory": "חולצות",
+    "productPrice": 70.00,
+    "quantity": 1,
+    "branchId": "B1",
+    "employeeNumber": "0",
+    "customerId": "222222222",
+    "dateTime": "2026-01-21T16:05:06.739393700",
+    "basePrice": 70.00,
+    "finalPrice": 64.40
+  },
+  {
+    "productId": "9485033491",
+    "productName": "חולצה קצרה שחורה",
+    "productCategory": "חולצות",
+    "productPrice": 70.00,
+    "quantity": 1,
+    "branchId": "B1",
+    "employeeNumber": "4",
+    "customerId": "333333333",
+    "dateTime": "2026-01-21T16:06:14.352362500",
+    "basePrice": 70.00,
+    "finalPrice": 59.50
+  },
+  {
+    "productId": "9485033491",
+    "productName": "חולצה קצרה שחורה",
+    "productCategory": "חולצות",
+    "productPrice": 70.00,
+    "quantity": 1,
+    "branchId": "B1",
+    "employeeNumber": "4",
+    "customerId": "333333333",
+    "dateTime": "2026-01-21T16:24:40.380859",
+    "basePrice": 70.00,
+    "finalPrice": 59.50
   }
 ]

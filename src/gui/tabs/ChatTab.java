@@ -9,14 +9,17 @@ import model.ChatUserStatus;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
 
 /**
- * טאב לניהול צ'אט בין סניפים
+ * Tab for managing inter-branch chat.
+ * Displays waiting requests, active chats, and message area.
+ * Implements auto-refresh every 3 seconds to keep UI updated.
+ * Managers can join existing chats.
+ * 
+ * @author FinalProject
  */
 public class ChatTab extends JPanel {
     
@@ -24,7 +27,7 @@ public class ChatTab extends JPanel {
     private MainWindow mainWindow;
     private String currentUsername;
     private String branchId;
-    private String userType;
+    private String role;
     
     private JList<String> waitingRequestsList;
     private DefaultListModel<String> waitingRequestsModel;
@@ -36,19 +39,26 @@ public class ChatTab extends JPanel {
     private JButton sendButton;
     private JButton endChatButton;
     private JButton refreshButton;
-    private JButton joinChatButton; // למנהל משמרת
-    private JButton acceptRequestButton; // לקבלת בקשה לצ'אט
-    private JButton cancelRequestButton; // לביטול בקשה
+    private JButton joinChatButton; // For shift manager
+    private JButton acceptRequestButton; // For accepting chat request
+    private JButton cancelRequestButton; // For canceling request
     
     private String currentChatId;
     private Timer refreshTimer;
     
+    /**
+     * Constructs a new ChatTab.
+     * Starts auto-refresh timer to keep UI updated.
+     * 
+     * @param connection the ClientConnection to the server
+     * @param mainWindow the parent MainWindow
+     */
     public ChatTab(ClientConnection connection, MainWindow mainWindow) {
         this.connection = connection;
         this.mainWindow = mainWindow;
         this.currentUsername = mainWindow.getCurrentUsername();
         this.branchId = mainWindow.getBranchId();
-        this.userType = mainWindow.getUserType();
+        this.role = mainWindow.getRole();
         
         setLayout(new BorderLayout());
         createUI();
@@ -107,7 +117,7 @@ public class ChatTab extends JPanel {
         joinChatButton = new JButton("הצטרף לצ'אט (מנהל)");
         joinChatButton.addActionListener(e -> joinChatAsManager());
         // רק למנהל משמרת (ADMIN או role=manager)
-        if (userType.equals("ADMIN")) {
+        if ("admin".equals(role) || "manager".equals(role)) {
             buttonPanel.add(joinChatButton);
         }
         

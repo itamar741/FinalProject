@@ -8,7 +8,10 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג לעדכון עובד (Admin only)
+ * Dialog for updating an existing employee (admin only).
+ * Allows changing employee details including name, phone, bank account, role, and branch.
+ * 
+ * @author FinalProject
  */
 public class UpdateEmployeeDialog extends JDialog {
     
@@ -19,7 +22,7 @@ public class UpdateEmployeeDialog extends JDialog {
     private JTextField fullNameField;
     private JTextField phoneField;
     private JTextField bankAccountField;
-    private JTextField roleField;
+    private JComboBox<String> roleCombo;
     private JComboBox<String> branchCombo;
     private JButton saveButton;
     private JButton cancelButton;
@@ -105,8 +108,8 @@ public class UpdateEmployeeDialog extends JDialog {
         gbc.gridx = 1;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        roleField = new JTextField(20);
-        mainPanel.add(roleField, gbc);
+        roleCombo = new JComboBox<>(new String[]{"manager", "salesman", "cashier"});
+        mainPanel.add(roleCombo, gbc);
         
         // סניף
         gbc.gridx = 0;
@@ -150,7 +153,13 @@ public class UpdateEmployeeDialog extends JDialog {
                         fullNameField.setText(empData[1]);  // fullName
                         phoneField.setText(empData[3]);  // phone
                         bankAccountField.setText(empData[4]);  // bankAccount
-                        roleField.setText(empData[5]);  // role
+                        // Set role in combo box if it exists in the list
+                        String role = empData[5];
+                        roleCombo.setSelectedItem(role);
+                        // If role is not in the list (e.g., "admin"), select first item
+                        if (roleCombo.getSelectedItem() == null || !roleCombo.getSelectedItem().equals(role)) {
+                            roleCombo.setSelectedIndex(0);
+                        }
                         branchCombo.setSelectedItem(empData[6]);  // branchId
                     }
                 }
@@ -164,10 +173,10 @@ public class UpdateEmployeeDialog extends JDialog {
         String fullName = fullNameField.getText().trim();
         String phone = phoneField.getText().trim();
         String bankAccount = bankAccountField.getText().trim();
-        String role = roleField.getText().trim();
+        String role = (String) roleCombo.getSelectedItem();
         String branchId = (String) branchCombo.getSelectedItem();
         
-        if (fullName.isEmpty() || phone.isEmpty() || bankAccount.isEmpty() || role.isEmpty()) {
+        if (fullName.isEmpty() || phone.isEmpty() || bankAccount.isEmpty() || role == null) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",

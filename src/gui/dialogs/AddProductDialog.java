@@ -8,7 +8,10 @@ import java.awt.*;
 import java.io.IOException;
 
 /**
- * דיאלוג להוספת מוצר לקטלוג (Admin only)
+ * Dialog for adding a new product to the catalog (admin only).
+ * Creates a new product and optionally adds it to inventory.
+ * 
+ * @author FinalProject
  */
 public class AddProductDialog extends JDialog {
     

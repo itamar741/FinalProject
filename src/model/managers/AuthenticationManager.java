@@ -7,28 +7,32 @@ import model.exceptions.UserNotFoundException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Manages user authentication and user account operations.
+ * Validates passwords according to password policy (minimum 6 characters).
+ * All users must be created manually - no default users are created.
+ * 
+ * @author FinalProject
+ */
 public class AuthenticationManager {
     
     private Map<String, User> users;  // username -> User
     
+    /**
+     * Constructs a new AuthenticationManager with empty user map.
+     * No default users are created - all users must be created manually.
+     */
     public AuthenticationManager() {
         users = new HashMap<>();
-        // יצירת משתמש אדמין ברירת מחדל
-        createDefaultAdmin();
-    }
-    
-    private void createDefaultAdmin() {
-        // משתמש אדמין ברירת מחדל: admin/admin
-        User admin = new User("admin", "admin", "ADMIN001", "ADMIN", "ALL");
-        users.put("admin", admin);
-        
-        // משתמש superadmin: superadmin/123456
-        User superadmin = new User("superadmin", "123456", "SUPER001", "ADMIN", "ALL");
-        users.put("superadmin", superadmin);
     }
     
     /**
-     * אימות משתמש
+     * Authenticates a user with username and password.
+     * 
+     * @param username the username
+     * @param password the password
+     * @return the authenticated User object
+     * @throws InvalidCredentialsException if username not found, user is inactive, or password is incorrect
      */
     public User authenticate(String username, String password) 
             throws InvalidCredentialsException {
@@ -47,28 +51,39 @@ public class AuthenticationManager {
     }
     
     /**
-     * יצירת משתמש חדש (רק אדמין)
+     * Creates a new user account.
+     * Validates password strength and role.
+     * 
+     * @param username the unique username
+     * @param password the user's password (must be at least 6 characters)
+     * @param role the user's role (admin, manager, salesman, cashier)
+     * @param branchId the branch ID where the user works
+     * @throws WeakPasswordException if password does not meet requirements
+     * @throws IllegalArgumentException if role is invalid
      */
     public void createUser(String username, 
                           String password, 
-                          String employeeNumber,
-                          String userType,  // שונה מ-role
+                          String role,
                           String branchId)
             throws WeakPasswordException {
         
         validatePassword(password);
         
-        // בדיקה ש-userType תקין
-        if (!userType.equals("ADMIN") && !userType.equals("EMPLOYEE")) {
-            throw new IllegalArgumentException("UserType must be ADMIN or EMPLOYEE");
+        // Validate role
+        if (!role.equals("admin") && !role.equals("manager") && 
+            !role.equals("salesman") && !role.equals("cashier")) {
+            throw new IllegalArgumentException("Role must be one of: admin, manager, salesman, cashier");
         }
         
-        User user = new User(username, password, employeeNumber, userType, branchId);
+        User user = new User(username, password, role, branchId);
         users.put(username, user);
     }
     
     /**
-     * הוספת משתמש ישיר (לטעינה - בלי בדיקת סיסמה)
+     * Adds a user directly (for loading from storage - no password validation).
+     * Used during data loading.
+     * 
+     * @param user the user to add
      */
     public void addUserDirectly(User user) {
         if (user != null && !users.containsKey(user.getUsername())) {
@@ -77,21 +92,33 @@ public class AuthenticationManager {
     }
     
     /**
-     * בדיקת מדיניות סיסמה
+     * Validates password according to password policy.
+     * Current policy: minimum 6 characters.
+     * Additional checks can be added (letters, digits, special characters).
+     * 
+     * @param password the password to validate
+     * @throws WeakPasswordException if password does not meet requirements
      */
     private void validatePassword(String password) throws WeakPasswordException {
         if (password == null || password.length() < 6) {
             throw new WeakPasswordException("Password must be at least 6 characters");
         }
         
-        // אפשר להוסיף בדיקות נוספות:
-        // - לפחות אות אחת
-        // - לפחות ספרה אחת
-        // - לפחות תו מיוחד
+        // Additional checks can be added:
+        // - At least one letter
+        // - At least one digit
+        // - At least one special character
     }
     
     /**
-     * שינוי סיסמה
+     * Changes a user's password.
+     * Validates old password and new password strength.
+     * 
+     * @param username the username
+     * @param oldPassword the current password
+     * @param newPassword the new password (must meet password policy)
+     * @throws InvalidCredentialsException if username not found or old password is incorrect
+     * @throws WeakPasswordException if new password does not meet requirements
      */
     public void changePassword(String username, String oldPassword, String newPassword)
             throws InvalidCredentialsException, WeakPasswordException {
@@ -106,28 +133,40 @@ public class AuthenticationManager {
     }
     
     /**
-     * קבלת משתמש לפי username
+     * Gets a user by username.
+     * 
+     * @param username the username
+     * @return the User object, or null if not found
      */
     public User getUser(String username) {
         return users.get(username);
     }
     
     /**
-     * בדיקה אם משתמש קיים
+     * Checks if a user exists.
+     * 
+     * @param username the username to check
+     * @return true if user exists, false otherwise
      */
     public boolean userExists(String username) {
         return users.containsKey(username);
     }
     
     /**
-     * קבלת כל המשתמשים (עבור אדמין)
+     * Gets all users (for admin operations).
+     * Returns a defensive copy to prevent external modification.
+     * 
+     * @return a Map of username to User
      */
     public Map<String, User> getAllUsers() {
         return new HashMap<>(users);
     }
     
     /**
-     * השבתת/הפעלת משתמש
+     * Activates or deactivates a user account.
+     * 
+     * @param username the username
+     * @param active true to activate, false to deactivate
      */
     public void setUserActive(String username, boolean active) {
         User user = users.get(username);
@@ -137,22 +176,15 @@ public class AuthenticationManager {
     }
     
     /**
-     * מחיקת משתמש מהמערכת
+     * Deletes a user from the system.
+     * 
+     * @param username the username to delete
+     * @throws UserNotFoundException if user not found
      */
     public void deleteUser(String username) throws UserNotFoundException {
         User user = users.get(username);
         if (user == null) {
             throw new UserNotFoundException("User " + username + " not found");
-        }
-        
-        // מניעת מחיקת משתמש אדמין ברירת מחדל
-        if (username.equals("admin") && user.getUserType().equals("ADMIN") && user.getEmployeeNumber().equals("ADMIN001")) {
-            throw new IllegalArgumentException("Cannot delete default admin user");
-        }
-        
-        // מניעת מחיקת משתמש superadmin
-        if (username.equals("superadmin") && user.getUserType().equals("ADMIN") && user.getEmployeeNumber().equals("SUPER001")) {
-            throw new IllegalArgumentException("Cannot delete superadmin user");
         }
         
         users.remove(username);
