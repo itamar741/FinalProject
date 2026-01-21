@@ -38,8 +38,17 @@ public class AuthenticationManager {
     public User authenticate(String username, String password) 
             throws InvalidCredentialsException {
         
+        // Normalize username (lowercase + trim) to prevent case-sensitivity issues
+        String normalizedUsername = username.trim().toLowerCase();
+        
         synchronized (users) {
-            User user = users.get(username);
+            // Try to find user with normalized username first
+            User user = users.get(normalizedUsername);
+            
+            // If not found, try original username (for backward compatibility)
+            if (user == null) {
+                user = users.get(username);
+            }
             
             if (user == null || !user.isActive()) {
                 throw new InvalidCredentialsException("Invalid username");

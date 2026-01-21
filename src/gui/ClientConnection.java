@@ -8,20 +8,39 @@ import java.net.Socket;
  */
 public class ClientConnection {
     
-    private static final String SERVER_HOST = "localhost";
+    private static final String DEFAULT_SERVER_HOST = "localhost";
     private static final int SERVER_PORT = 5000;
     
+    private String serverHost;
     private Socket socket;
     private PrintWriter out;
     private BufferedReader in;
     private boolean connected = false;
     
     /**
+     * Constructs a new ClientConnection with default server host (localhost).
+     */
+    public ClientConnection() {
+        this.serverHost = DEFAULT_SERVER_HOST;
+    }
+    
+    /**
+     * Constructs a new ClientConnection with specified server host.
+     * 
+     * @param serverHost the server host address (IP or hostname)
+     */
+    public ClientConnection(String serverHost) {
+        this.serverHost = (serverHost != null && !serverHost.trim().isEmpty()) 
+            ? serverHost.trim() 
+            : DEFAULT_SERVER_HOST;
+    }
+    
+    /**
      * התחברות לשרת
      */
     public boolean connect() {
         try {
-            socket = new Socket(SERVER_HOST, SERVER_PORT);
+            socket = new Socket(serverHost, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             

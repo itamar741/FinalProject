@@ -48,17 +48,20 @@ public class SessionManager {
                                 Socket socket)
             throws UserAlreadyLoggedInException {
         
+        // Normalize username (lowercase + trim) to prevent case-sensitivity issues
+        String normalizedUsername = username.trim().toLowerCase();
+        
         // Synchronize for atomic check-and-put operation
         synchronized (activeSessions) {
             // Check if user is already logged in
-            if (activeSessions.containsKey(username)) {
+            if (activeSessions.containsKey(normalizedUsername)) {
                 throw new UserAlreadyLoggedInException(
                     "User " + username + " is already logged in from another location"
                 );
             }
             
-            Session session = new Session(username, branchId, role, socket);
-            activeSessions.put(username, session);
+            Session session = new Session(normalizedUsername, branchId, role, socket);
+            activeSessions.put(normalizedUsername, session);
             sessionsBySocket.put(socket, session);
             
             return session;
@@ -75,7 +78,9 @@ public class SessionManager {
         synchronized (activeSessions) {
             Session session = sessionsBySocket.remove(socket);
             if (session != null) {
-                activeSessions.remove(session.getUsername());
+                // Normalize username for removal
+                String normalizedUsername = session.getUsername().trim().toLowerCase();
+                activeSessions.remove(normalizedUsername);
             }
         }
     }
@@ -97,7 +102,8 @@ public class SessionManager {
      * @return the Session object, or null if not found
      */
     public Session getSessionByUsername(String username) {
-        return activeSessions.get(username);
+        String normalizedUsername = username.trim().toLowerCase();
+        return activeSessions.get(normalizedUsername);
     }
     
     /**
@@ -107,7 +113,8 @@ public class SessionManager {
      * @return true if user is logged in, false otherwise
      */
     public boolean isUserLoggedIn(String username) {
-        return activeSessions.containsKey(username);
+        String normalizedUsername = username.trim().toLowerCase();
+        return activeSessions.containsKey(normalizedUsername);
     }
     
     /**

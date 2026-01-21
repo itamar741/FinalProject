@@ -11,6 +11,7 @@ public class LoginWindow extends JFrame {
     
     private JTextField usernameField;
     private JPasswordField passwordField;
+    private JTextField serverHostField;
     private JButton loginButton;
     private ClientConnection connection;
     private boolean loginSuccessful = false;  // האם ההתחברות הצליחה וה-MainWindow נפתח
@@ -18,23 +19,12 @@ public class LoginWindow extends JFrame {
     public LoginWindow() {
         setTitle("התחברות למערכת");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(350, 200);
+        setSize(400, 250);
         setLocationRelativeTo(null);
         setResizable(false);
         
-        // יצירת connection
-        connection = new ClientConnection();
-        
-        // יצירת UI
+        // יצירת UI (connection ייווצר אחרי הזנת כתובת השרת)
         createUI();
-        
-        // ניסיון התחברות לשרת
-        if (!connection.connect()) {
-            JOptionPane.showMessageDialog(this,
-                    "לא ניתן להתחבר לשרת.\nאנא וודא שהשרת פועל.",
-                    "שגיאת חיבור",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
     
     /**
@@ -48,9 +38,25 @@ public class LoginWindow extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         
-        // שם משתמש
+        // כתובת שרת
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.EAST;
+        mainPanel.add(new JLabel("כתובת שרת:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        serverHostField = new JTextField(15);
+        serverHostField.setText("localhost");
+        serverHostField.setToolTipText("הזן כתובת IP של השרת (לדוגמה: 192.168.1.100) או localhost למחשב מקומי");
+        mainPanel.add(serverHostField, gbc);
+        
+        // שם משתמש
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST;
         mainPanel.add(new JLabel("שם משתמש:"), gbc);
         
@@ -62,7 +68,7 @@ public class LoginWindow extends JFrame {
         
         // סיסמה
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST;
@@ -77,7 +83,7 @@ public class LoginWindow extends JFrame {
         
         // כפתור התחבר
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -96,10 +102,11 @@ public class LoginWindow extends JFrame {
      * Validates input, sends login command to server, and handles response.
      */
     private void performLogin() {
+        String serverHost = serverHostField.getText().trim();
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         
-        if (username.isEmpty() || password.isEmpty()) {
+        if (serverHost.isEmpty() || username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",
@@ -112,6 +119,20 @@ public class LoginWindow extends JFrame {
         loginButton.setText("מתחבר...");
         
         try {
+            // יצירת connection עם כתובת השרת
+            connection = new ClientConnection(serverHost);
+            
+            // ניסיון התחברות לשרת
+            if (!connection.connect()) {
+                JOptionPane.showMessageDialog(this,
+                        "לא ניתן להתחבר לשרת.\nאנא וודא שהשרת פועל בכתובת: " + serverHost,
+                        "שגיאת חיבור",
+                        JOptionPane.ERROR_MESSAGE);
+                loginButton.setEnabled(true);
+                loginButton.setText("התחבר");
+                return;
+            }
+            
             String response = connection.login(username, password);
             handleLoginResponse(response);
         } catch (IOException e) {

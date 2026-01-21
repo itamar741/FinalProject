@@ -883,5 +883,25 @@
     "actionType": "LOGIN",
     "description": "User admin (admin) logged in from /127.0.0.1:58172",
     "dateTime": "2026-01-21T18:03:37.352061500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T18:08:49.270728900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User cashier1b1 (cashier) logged in from /127.0.0.1:59662",
+    "dateTime": "2026-01-21T18:33:37.747483700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User cashier1b1 logged out",
+    "dateTime": "2026-01-21T18:33:43.748160100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:65483",
+    "dateTime": "2026-01-21T18:37:03.293823700"
   }
 ]
