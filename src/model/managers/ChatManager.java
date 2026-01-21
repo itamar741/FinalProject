@@ -43,6 +43,7 @@ public class ChatManager {
     
     private SessionManager sessionManager;
     private int chatIdCounter;
+    private final Object counterLock = new Object();  // Lock object for counter
     
     /**
      * Constructs a new ChatManager.
@@ -79,8 +80,11 @@ public class ChatManager {
             return "ERROR;User is already in queue";
         }
         
-        // Create new request
-        String requestId = "REQ_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        // Create new request - synchronize counter increment
+        String requestId;
+        synchronized (counterLock) {
+            requestId = "REQ_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        }
         ChatRequest request = new ChatRequest(requestId, requesterUsername, requesterBranchId);
         
         // Add to queue
@@ -147,8 +151,11 @@ public class ChatManager {
             return null; // No available user from different branch found
         }
         
-        // Create new chat
-        String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        // Create new chat - synchronize counter increment
+        String chatId;
+        synchronized (counterLock) {
+            chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        }
         ChatSession session = new ChatSession(chatId, req1.getRequesterUsername(), matchedUsername);
         activeChats.put(chatId, session);
         
@@ -195,7 +202,11 @@ public class ChatManager {
      * @return the chat ID of the created session
      */
     public String createChatSession(String user1, String user2) {
-        String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        // Synchronize counter increment
+        String chatId;
+        synchronized (counterLock) {
+            chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        }
         ChatSession session = new ChatSession(chatId, user1, user2);
         activeChats.put(chatId, session);
         
@@ -480,8 +491,11 @@ public class ChatManager {
             return "ERROR;Requester is no longer in queue";
         }
         
-        // Create chat
-        String chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        // Create chat - synchronize counter increment
+        String chatId;
+        synchronized (counterLock) {
+            chatId = "CHAT_" + System.currentTimeMillis() + "_" + chatIdCounter++;
+        }
         ChatSession session = new ChatSession(chatId, request.getRequesterUsername(), acceptingUsername);
         activeChats.put(chatId, session);
         

@@ -3,7 +3,6 @@ package model;
 /**
  * Represents a product in the system.
  * Products are identified by their productId, which is used for equality comparison.
- * Products can be active or inactive (inactive products cannot be sold).
  * 
  * @author FinalProject
  */
@@ -12,11 +11,9 @@ public class Product {
     private String name;
     private String category;
     private double price;
-    private boolean active;
 
     /**
      * Constructs a new Product with the specified details.
-     * New products are created as active by default.
      * 
      * @param productId the unique product identifier
      * @param name the product name
@@ -28,7 +25,6 @@ public class Product {
         this.name = name;
         this.category = category;
         this.price = price;
-        this.active = true;
     }
     
     /**
@@ -68,16 +64,6 @@ public class Product {
     }
     
     /**
-     * Checks if the product is active.
-     * Only active products can be sold.
-     * 
-     * @return true if active, false otherwise
-     */
-    public boolean isActive() {
-        return active;
-    }
-
-    /**
      * Sets the product price.
      * 
      * @param price the new price
@@ -111,15 +97,6 @@ public class Product {
      */
     public void setName(String name) {
         this.name = name;
-    }
-    
-    /**
-     * Sets the product active status.
-     * 
-     * @param active true to activate, false to deactivate
-     */
-    public void setActive(boolean active) {
-        this.active = active;
     }
     
     /**

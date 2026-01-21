@@ -16,7 +16,7 @@ import java.util.ArrayList;
 /**
  * Tab for managing inter-branch chat.
  * Displays waiting requests, active chats, and message area.
- * Implements auto-refresh every 3 seconds to keep UI updated.
+ * Implements auto-refresh every 500ms (0.5 seconds) to keep UI updated with minimal server load.
  * Managers can join existing chats.
  * 
  * @author FinalProject
@@ -562,8 +562,8 @@ public class ChatTab extends JPanel {
     }
     
     private void startAutoRefresh() {
-        // רענון אוטומטי כל 3 שניות
-        refreshTimer = new Timer(3000, e -> {
+        // רענון אוטומטי כל 500ms (0.5 שניות) - איזון טוב בין ביצועים לחוויית משתמש
+        refreshTimer = new Timer(500, e -> {
             if (currentChatId != null) {
                 loadChat(currentChatId);
             }

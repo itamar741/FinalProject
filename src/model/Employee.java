@@ -3,7 +3,7 @@ package model;
 /**
  * Represents an employee in the system.
  * Employees are identified by their employeeNumber and belong to a specific branch.
- * Each employee has a role (e.g., manager, cashier, salesperson) and can be active or inactive.
+ * Each employee has a role (e.g., manager, cashier, salesperson).
  * 
  * @author FinalProject
  */
@@ -15,11 +15,9 @@ public class Employee {
     private String employeeNumber;
     private String role;
     private String branchId;
-    private boolean active;
 
     /**
      * Constructs a new Employee with the specified details.
-     * New employees are created as active by default.
      * 
      * @param fullName the employee's full name
      * @param idNumber the employee's ID number
@@ -43,7 +41,6 @@ public class Employee {
         this.employeeNumber = employeeNumber;
         this.role = role;
         this.branchId = branchId;
-        this.active = true;
     }
 
     /**
@@ -107,24 +104,6 @@ public class Employee {
      */
     public String getBranchId() {
         return branchId;
-    }
-
-    /**
-     * Checks if the employee is active.
-     * 
-     * @return true if active, false otherwise
-     */
-    public boolean isActive() {
-        return active;
-    }
-
-    /**
-     * Sets the employee's active status.
-     * 
-     * @param active true to activate, false to deactivate
-     */
-    public void setActive(boolean active) {
-        this.active = active;
     }
 
     /**

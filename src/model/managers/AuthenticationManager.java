@@ -4,6 +4,7 @@ import model.User;
 import model.exceptions.InvalidCredentialsException;
 import model.exceptions.WeakPasswordException;
 import model.exceptions.UserNotFoundException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class AuthenticationManager {
      * No default users are created - all users must be created manually.
      */
     public AuthenticationManager() {
-        users = new HashMap<>();
+        users = Collections.synchronizedMap(new HashMap<>());
     }
     
     /**
@@ -37,17 +38,19 @@ public class AuthenticationManager {
     public User authenticate(String username, String password) 
             throws InvalidCredentialsException {
         
-        User user = users.get(username);
-        
-        if (user == null || !user.isActive()) {
-            throw new InvalidCredentialsException("Invalid username");
+        synchronized (users) {
+            User user = users.get(username);
+            
+            if (user == null || !user.isActive()) {
+                throw new InvalidCredentialsException("Invalid username");
+            }
+            
+            if (!user.checkPassword(password)) {
+                throw new InvalidCredentialsException("Invalid password");
+            }
+            
+            return user;
         }
-        
-        if (!user.checkPassword(password)) {
-            throw new InvalidCredentialsException("Invalid password");
-        }
-        
-        return user;
     }
     
     /**
@@ -76,7 +79,14 @@ public class AuthenticationManager {
         }
         
         User user = new User(username, password, role, branchId);
-        users.put(username, user);
+        
+        // Synchronize for atomic check-and-put operation
+        synchronized (users) {
+            if (users.containsKey(username)) {
+                throw new IllegalArgumentException("User " + username + " already exists");
+            }
+            users.put(username, user);
+        }
     }
     
     /**
@@ -86,8 +96,12 @@ public class AuthenticationManager {
      * @param user the user to add
      */
     public void addUserDirectly(User user) {
-        if (user != null && !users.containsKey(user.getUsername())) {
-            users.put(user.getUsername(), user);
+        if (user != null) {
+            synchronized (users) {
+                if (!users.containsKey(user.getUsername())) {
+                    users.put(user.getUsername(), user);
+                }
+            }
         }
     }
     
@@ -123,13 +137,15 @@ public class AuthenticationManager {
     public void changePassword(String username, String oldPassword, String newPassword)
             throws InvalidCredentialsException, WeakPasswordException {
         
-        User user = users.get(username);
-        if (user == null || !user.checkPassword(oldPassword)) {
-            throw new InvalidCredentialsException("Invalid credentials");
+        synchronized (users) {
+            User user = users.get(username);
+            if (user == null || !user.checkPassword(oldPassword)) {
+                throw new InvalidCredentialsException("Invalid credentials");
+            }
+            
+            validatePassword(newPassword);
+            user.setPassword(newPassword);
         }
-        
-        validatePassword(newPassword);
-        user.setPassword(newPassword);
     }
     
     /**
@@ -139,7 +155,9 @@ public class AuthenticationManager {
      * @return the User object, or null if not found
      */
     public User getUser(String username) {
-        return users.get(username);
+        synchronized (users) {
+            return users.get(username);
+        }
     }
     
     /**
@@ -149,7 +167,9 @@ public class AuthenticationManager {
      * @return true if user exists, false otherwise
      */
     public boolean userExists(String username) {
-        return users.containsKey(username);
+        synchronized (users) {
+            return users.containsKey(username);
+        }
     }
     
     /**
@@ -159,7 +179,9 @@ public class AuthenticationManager {
      * @return a Map of username to User
      */
     public Map<String, User> getAllUsers() {
-        return new HashMap<>(users);
+        synchronized (users) {
+            return new HashMap<>(users);
+        }
     }
     
     /**
@@ -169,9 +191,11 @@ public class AuthenticationManager {
      * @param active true to activate, false to deactivate
      */
     public void setUserActive(String username, boolean active) {
-        User user = users.get(username);
-        if (user != null) {
-            user.setActive(active);
+        synchronized (users) {
+            User user = users.get(username);
+            if (user != null) {
+                user.setActive(active);
+            }
         }
     }
     
@@ -182,11 +206,13 @@ public class AuthenticationManager {
      * @throws UserNotFoundException if user not found
      */
     public void deleteUser(String username) throws UserNotFoundException {
-        User user = users.get(username);
-        if (user == null) {
-            throw new UserNotFoundException("User " + username + " not found");
+        synchronized (users) {
+            User user = users.get(username);
+            if (user == null) {
+                throw new UserNotFoundException("User " + username + " not found");
+            }
+            
+            users.remove(username);
         }
-        
-        users.remove(username);
     }
 }

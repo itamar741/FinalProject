@@ -5,6 +5,7 @@ import model.exceptions.DuplicateEmployeeException;
 import model.exceptions.EmployeeNotFoundException;
 import model.exceptions.InvalidIdNumberException;
 import model.exceptions.InvalidPhoneException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,9 +25,9 @@ public class EmployeeManager {
      * Constructs a new EmployeeManager with empty employee maps.
      */
     public EmployeeManager() {
-        employees = new HashMap<>();
-        employeesByIdNumber = new HashMap<>();
-        usernameToEmployeeNumber = new HashMap<>();
+        employees = Collections.synchronizedMap(new HashMap<>());
+        employeesByIdNumber = Collections.synchronizedMap(new HashMap<>());
+        usernameToEmployeeNumber = Collections.synchronizedMap(new HashMap<>());
     }
     
     /**
@@ -57,21 +58,25 @@ public class EmployeeManager {
         // Validate phone number (must be exactly 10 digits)
         validatePhoneNumber(phone);
         
-        // Check if employee already exists (by employee number or ID number)
-        if (employees.containsKey(employeeNumber)) {
-            throw new DuplicateEmployeeException("Employee with number " + employeeNumber + " already exists");
+        // Synchronize on employees (main map) - ALWAYS use same lock order to prevent deadlock
+        synchronized (employees) {
+            // Check if employee already exists (by employee number or ID number)
+            if (employees.containsKey(employeeNumber)) {
+                throw new DuplicateEmployeeException("Employee with number " + employeeNumber + " already exists");
+            }
+            
+            if (employeesByIdNumber.containsKey(idNumber)) {
+                throw new DuplicateEmployeeException("Employee with ID number " + idNumber + " already exists");
+            }
+            
+            // Create and add to all maps atomically
+            Employee employee = new Employee(
+                fullName, idNumber, phone, bankAccount, 
+                employeeNumber, role, branchId
+            );
+            employees.put(employeeNumber, employee);
+            employeesByIdNumber.put(idNumber, employee);
         }
-        
-        if (employeesByIdNumber.containsKey(idNumber)) {
-            throw new DuplicateEmployeeException("Employee with ID number " + idNumber + " already exists");
-        }
-        
-        Employee employee = new Employee(
-            fullName, idNumber, phone, bankAccount, 
-            employeeNumber, role, branchId
-        );
-        employees.put(employeeNumber, employee);
-        employeesByIdNumber.put(idNumber, employee);
     }
     
     /**
@@ -129,11 +134,13 @@ public class EmployeeManager {
      */
     public Employee getEmployee(String employeeNumber) 
             throws EmployeeNotFoundException {
-        Employee employee = employees.get(employeeNumber);
-        if (employee == null) {
-            throw new EmployeeNotFoundException("Employee with number " + employeeNumber + " not found");
+        synchronized (employees) {
+            Employee employee = employees.get(employeeNumber);
+            if (employee == null) {
+                throw new EmployeeNotFoundException("Employee with number " + employeeNumber + " not found");
+            }
+            return employee;
         }
-        return employee;
     }
     
     /**
@@ -143,7 +150,9 @@ public class EmployeeManager {
      * @return a Map of employeeNumber to Employee
      */
     public Map<String, Employee> getAllEmployees() {
-        return new HashMap<>(employees);
+        synchronized (employees) {
+            return new HashMap<>(employees);
+        }
     }
     
     /**
@@ -167,37 +176,29 @@ public class EmployeeManager {
                               String role,
                               String branchId)
             throws EmployeeNotFoundException, InvalidPhoneException {
-        Employee employee = getEmployee(employeeNumber);  // Throws exception if not found
-        
-        if (fullName != null && !fullName.trim().isEmpty()) {
-            employee.setFullName(fullName);
+        synchronized (employees) {
+            Employee employee = employees.get(employeeNumber);
+            if (employee == null) {
+                throw new EmployeeNotFoundException("Employee with number " + employeeNumber + " not found");
+            }
+            
+            if (fullName != null && !fullName.trim().isEmpty()) {
+                employee.setFullName(fullName);
+            }
+            if (phone != null && !phone.trim().isEmpty()) {
+                validatePhoneNumber(phone);  // Validate before updating
+                employee.setPhone(phone);
+            }
+            if (bankAccount != null && !bankAccount.trim().isEmpty()) {
+                employee.setBankAccount(bankAccount);
+            }
+            if (role != null && !role.trim().isEmpty()) {
+                employee.setRole(role);
+            }
+            if (branchId != null && !branchId.trim().isEmpty()) {
+                employee.setBranchId(branchId);
+            }
         }
-        if (phone != null && !phone.trim().isEmpty()) {
-            validatePhoneNumber(phone);  // Validate before updating
-            employee.setPhone(phone);
-        }
-        if (bankAccount != null && !bankAccount.trim().isEmpty()) {
-            employee.setBankAccount(bankAccount);
-        }
-        if (role != null && !role.trim().isEmpty()) {
-            employee.setRole(role);
-        }
-        if (branchId != null && !branchId.trim().isEmpty()) {
-            employee.setBranchId(branchId);
-        }
-    }
-    
-    /**
-     * Activates or deactivates an employee.
-     * 
-     * @param employeeNumber the employee number
-     * @param active true to activate, false to deactivate
-     * @throws EmployeeNotFoundException if employee not found
-     */
-    public void setEmployeeActive(String employeeNumber, boolean active)
-            throws EmployeeNotFoundException {
-        Employee employee = getEmployee(employeeNumber);
-        employee.setActive(active);
     }
     
     /**
@@ -209,9 +210,27 @@ public class EmployeeManager {
      */
     public void deleteEmployee(String employeeNumber)
             throws EmployeeNotFoundException {
-        Employee employee = getEmployee(employeeNumber);
-        employees.remove(employeeNumber);
-        employeesByIdNumber.remove(employee.getIdNumber());
+        synchronized (employees) {
+            Employee employee = employees.get(employeeNumber);
+            if (employee == null) {
+                throw new EmployeeNotFoundException("Employee with number " + employeeNumber + " not found");
+            }
+            employees.remove(employeeNumber);
+            employeesByIdNumber.remove(employee.getIdNumber());
+            
+            // Find and remove username mapping (username -> employeeNumber)
+            // Need to iterate to find the username that maps to this employeeNumber
+            String usernameToRemove = null;
+            for (Map.Entry<String, String> entry : usernameToEmployeeNumber.entrySet()) {
+                if (entry.getValue().equals(employeeNumber)) {
+                    usernameToRemove = entry.getKey();
+                    break;
+                }
+            }
+            if (usernameToRemove != null) {
+                usernameToEmployeeNumber.remove(usernameToRemove);
+            }
+        }
     }
     
     /**
@@ -221,13 +240,15 @@ public class EmployeeManager {
      * @return a Map of employeeNumber to Employee for the specified branch
      */
     public Map<String, Employee> getEmployeesByBranch(String branchId) {
-        Map<String, Employee> result = new HashMap<>();
-        for (Employee emp : employees.values()) {
-            if (emp.getBranchId().equals(branchId)) {
-                result.put(emp.getEmployeeNumber(), emp);
+        synchronized (employees) {
+            Map<String, Employee> result = new HashMap<>();
+            for (Employee emp : employees.values()) {
+                if (emp.getBranchId().equals(branchId)) {
+                    result.put(emp.getEmployeeNumber(), emp);
+                }
             }
+            return result;
         }
-        return result;
     }
     
     /**
@@ -237,7 +258,9 @@ public class EmployeeManager {
      * @return true if employee exists, false otherwise
      */
     public boolean employeeExists(String employeeNumber) {
-        return employees.containsKey(employeeNumber);
+        synchronized (employees) {
+            return employees.containsKey(employeeNumber);
+        }
     }
     
     /**
@@ -248,7 +271,9 @@ public class EmployeeManager {
      * @param employeeNumber the employee number
      */
     public void registerUsernameMapping(String username, String employeeNumber) {
-        usernameToEmployeeNumber.put(username, employeeNumber);
+        synchronized (employees) {
+            usernameToEmployeeNumber.put(username, employeeNumber);
+        }
     }
     
     /**
@@ -258,6 +283,8 @@ public class EmployeeManager {
      * @return the employee number, or null if not found
      */
     public String getEmployeeNumberByUsername(String username) {
-        return usernameToEmployeeNumber.get(username);
+        synchronized (employees) {
+            return usernameToEmployeeNumber.get(username);
+        }
     }
 }

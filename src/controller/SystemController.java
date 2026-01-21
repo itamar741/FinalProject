@@ -171,13 +171,6 @@ public class SystemController {
                     empData.bankAccount, empData.employeeNumber,
                     empData.role, empData.branchId
                 );
-                if (!empData.active) {
-                    try {
-                        employeeManager.setEmployeeActive(empData.employeeNumber, false);
-                    } catch (EmployeeNotFoundException e) {
-                        // עובד לא נמצא, מדלג
-                    }
-                }
             } catch (DuplicateEmployeeException e) {
                 // כבר קיים, מדלג
             } catch (InvalidIdNumberException | InvalidPhoneException e) {
@@ -688,7 +681,6 @@ public class SystemController {
      * @param customerId the customer ID making the purchase
      * @throws InvalidQuantityException if quantity is less than or equal to 0
      * @throws InsufficientStockException if there is not enough stock
-     * @throws InactiveProductException if the product is not active
      */
     public void sellProduct(String productId,
                             int quantity,
@@ -696,8 +688,7 @@ public class SystemController {
                             String employeeNumber,
                             String customerId)
             throws InvalidQuantityException,
-            InsufficientStockException,
-            InactiveProductException {
+            InsufficientStockException {
 
         // 1. שליפת מוצר קיים מהקטלוג
         Product product = productManager.getExistingProduct(productId);
@@ -1081,31 +1072,6 @@ public class SystemController {
         }
     }
     
-    /**
-     * Activates or deactivates an employee (admin only).
-     * 
-     * @param employeeNumber the employee number
-     * @param active true to activate, false to deactivate
-     * @throws EmployeeNotFoundException if employee not found
-     */
-    public void setEmployeeActive(String employeeNumber, boolean active)
-            throws EmployeeNotFoundException {
-        
-        employeeManager.setEmployeeActive(employeeNumber, active);
-        
-        LogEntry entry = new LogEntry(
-                "SET_EMPLOYEE_ACTIVE",
-                "Employee " + employeeNumber + " set to " + (active ? "active" : "inactive"),
-                LocalDateTime.now().toString()
-        );
-        logManager.addLog(entry);
-        try {
-            saveEmployees();
-            saveLogs();
-        } catch (IOException e) {
-            System.err.println("Error saving data: " + e.getMessage());
-        }
-    }
     
     /**
      * Deletes an employee from the system (admin only).

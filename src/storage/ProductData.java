@@ -13,7 +13,6 @@ public class ProductData {
     public String name;
     public String category;
     public double price;
-    public boolean active;
     
     /**
      * Default constructor for JSON deserialization.
@@ -30,7 +29,6 @@ public class ProductData {
         this.name = product.getName();
         this.category = product.getCategory();
         this.price = product.getPrice();
-        this.active = product.isActive();
     }
     
     /**
@@ -39,8 +37,6 @@ public class ProductData {
      * @return a Product object with all fields set
      */
     public Product toProduct() {
-        Product product = new Product(productId, name, category, price);
-        product.setActive(active);
-        return product;
+        return new Product(productId, name, category, price);
     }
 }

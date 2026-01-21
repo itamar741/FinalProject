@@ -2,6 +2,7 @@ package model.managers;
 
 import model.LogEntry;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -19,7 +20,7 @@ public class LogManager {
      * Constructs a new LogManager with an empty logs list.
      */
     public LogManager() {
-        this.logs = new ArrayList<>();
+        this.logs = Collections.synchronizedList(new ArrayList<>());
     }
 
     /**
@@ -37,11 +38,13 @@ public class LogManager {
 
     /**
      * Gets all log entries.
-     * Returns the actual list (not a copy) for performance - caller should not modify.
+     * Returns a defensive copy to prevent external modification and ensure thread-safe iteration.
      * 
-     * @return the list of all log entries
+     * @return a copy of the list of all log entries
      */
     public List<LogEntry> getLogs() {
-        return logs;
+        synchronized (logs) {
+            return new ArrayList<>(logs);
+        }
     }
 }

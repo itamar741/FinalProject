@@ -1,5 +1,6 @@
 package model.managers;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class ProductManager {
      * Constructs a new ProductManager with an empty product map.
      */
     public ProductManager() {
-        products = new HashMap<>();
+        products = Collections.synchronizedMap(new HashMap<>());
     }
 
     /**
@@ -33,19 +34,22 @@ public class ProductManager {
      * @return the Product object (existing or newly created)
      */
     public Product getProduct(String productId, String name, String category, double price) {
-        Product product = products.get(productId);
+        // Synchronize for atomic check-and-put operation
+        synchronized (products) {
+            Product product = products.get(productId);
 
-        if (product == null) {
-            product = new Product(productId, name, category, price);
-            products.put(productId, product);
-        } else {
-            // Update price if different (tolerance: 0.01)
-            if (Math.abs(product.getPrice() - price) > 0.01) {
-                product.setPrice(price);
+            if (product == null) {
+                product = new Product(productId, name, category, price);
+                products.put(productId, product);
+            } else {
+                // Update price if different (tolerance: 0.01)
+                if (Math.abs(product.getPrice() - price) > 0.01) {
+                    product.setPrice(price);
+                }
             }
-        }
 
-        return product;
+            return product;
+        }
     }
 
     /**
@@ -55,7 +59,9 @@ public class ProductManager {
      * @return the Product object, or null if not found
      */
     public Product getExistingProduct(String productId) {
-        return products.get(productId);
+        synchronized (products) {
+            return products.get(productId);
+        }
     }
     
     /**
@@ -65,7 +71,9 @@ public class ProductManager {
      * @return a Map of productId to Product
      */
     public Map<String, Product> getAllProducts() {
-        return new HashMap<>(products);
+        synchronized (products) {
+            return new HashMap<>(products);
+        }
     }
     
     /**
@@ -76,7 +84,9 @@ public class ProductManager {
      */
     public void addProductDirectly(Product product) {
         if (product != null) {
-            products.put(product.getProductId(), product);
+            synchronized (products) {
+                products.put(product.getProductId(), product);
+            }
         }
     }
     
@@ -86,7 +96,9 @@ public class ProductManager {
      * @param productId the product ID to delete
      */
     public void deleteProduct(String productId) {
-        products.remove(productId);
+        synchronized (products) {
+            products.remove(productId);
+        }
     }
 
 }

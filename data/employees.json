@@ -22,7 +22,7 @@
   "3": {
     "fullName": "cashier1B1",
     "idNumber": "333333333",
-    "phone": "1111111111",
+    "phone": "3333333333",
     "bankAccount": "1",
     "employeeNumber": "3",
     "role": "cashier",
@@ -37,6 +37,26 @@
     "employeeNumber": "4",
     "role": "salesman",
     "branchId": "B1",
+    "active": true
+  },
+  "5": {
+    "fullName": "cashier1b2",
+    "idNumber": "555555555",
+    "phone": "5555555555",
+    "bankAccount": "5",
+    "employeeNumber": "5",
+    "role": "cashier",
+    "branchId": "B2",
+    "active": true
+  },
+  "6": {
+    "fullName": "salesman1b2",
+    "idNumber": "666666666",
+    "phone": "6666666666",
+    "bankAccount": "6",
+    "employeeNumber": "6",
+    "role": "salesman",
+    "branchId": "B2",
     "active": true
   }
 }

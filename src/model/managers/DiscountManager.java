@@ -1,5 +1,6 @@
 package model.managers;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +20,7 @@ public class DiscountManager {
      * Default values: NEW=0%, RETURNING=5%, VIP=15%
      */
     public DiscountManager() {
-        discounts = new HashMap<>();
+        discounts = Collections.synchronizedMap(new HashMap<>());
         // Set default values
         discounts.put("NEW", 0.0);
         discounts.put("RETURNING", 5.0);
@@ -33,11 +34,13 @@ public class DiscountManager {
      * @return the discount percentage (0.0 to 100.0)
      */
     public double getDiscount(String customerType) {
-        Double discount = discounts.get(customerType);
-        if (discount == null) {
-            return 0.0; // Default to no discount if type not found
+        synchronized (discounts) {
+            Double discount = discounts.get(customerType);
+            if (discount == null) {
+                return 0.0; // Default to no discount if type not found
+            }
+            return discount;
         }
-        return discount;
     }
     
     /**
@@ -54,7 +57,9 @@ public class DiscountManager {
         if (discountPercentage < 0.0 || discountPercentage > 100.0) {
             throw new IllegalArgumentException("Discount percentage must be between 0 and 100");
         }
-        discounts.put(customerType, discountPercentage);
+        synchronized (discounts) {
+            discounts.put(customerType, discountPercentage);
+        }
     }
     
     /**
@@ -64,7 +69,9 @@ public class DiscountManager {
      * @return a Map of customerType to discount percentage
      */
     public Map<String, Double> getAllDiscounts() {
-        return new HashMap<>(discounts);
+        synchronized (discounts) {
+            return new HashMap<>(discounts);
+        }
     }
     
     /**
@@ -74,7 +81,9 @@ public class DiscountManager {
      */
     public void setAllDiscounts(Map<String, Double> discountsMap) {
         if (discountsMap != null) {
-            discounts = new HashMap<>(discountsMap);
+            synchronized (discounts) {
+                discounts = Collections.synchronizedMap(new HashMap<>(discountsMap));
+            }
         }
     }
 }

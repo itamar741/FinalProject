@@ -29,7 +29,6 @@ public class EmployeesManagementTab extends JPanel {
     private DefaultTableModel tableModel;
     private JButton createButton;
     private JButton updateButton;
-    private JButton activateButton;
     private JButton deleteButton;
     private JButton refreshButton;
     
@@ -71,10 +70,6 @@ public class EmployeesManagementTab extends JPanel {
         updateButton.addActionListener(e -> showUpdateEmployeeDialog());
         buttonPanel.add(updateButton);
         
-        activateButton = new JButton("הפעל/השבת");
-        activateButton.addActionListener(e -> toggleEmployeeActive());
-        buttonPanel.add(activateButton);
-        
         deleteButton = new JButton("מחק עובד");
         deleteButton.addActionListener(e -> deleteEmployee());
         buttonPanel.add(deleteButton);
@@ -88,14 +83,13 @@ public class EmployeesManagementTab extends JPanel {
         // הסתר כפתורי ניהול מ-cashier
         if ("cashier".equals(role)) {
             updateButton.setVisible(false);
-            activateButton.setVisible(false);
             deleteButton.setVisible(false);
         }
         
         add(topPanel, BorderLayout.NORTH);
         
         // טבלת עובדים
-        String[] columns = {"מספר עובד", "שם מלא", "ת.ז.", "טלפון", "חשבון בנק", "תפקיד", "סניף", "סטטוס"};
+        String[] columns = {"מספר עובד", "שם מלא", "ת.ז.", "טלפון", "חשבון בנק", "תפקיד", "סניף"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -130,41 +124,6 @@ public class EmployeesManagementTab extends JPanel {
         UpdateEmployeeDialog dialog = new UpdateEmployeeDialog(mainWindow, connection, employeeNumber);
         dialog.setVisible(true);
         refresh();
-    }
-    
-    private void toggleEmployeeActive() {
-        int selectedRow = employeesTable.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                    "אנא בחר עובד",
-                    "שגיאה",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        String employeeNumber = (String) tableModel.getValueAt(selectedRow, 0);
-        String status = (String) tableModel.getValueAt(selectedRow, 7);
-        boolean newStatus = !status.equals("active");
-        
-        try {
-            String command = "SET_EMPLOYEE_ACTIVE;" + employeeNumber + ";" + newStatus;
-            String response = connection.sendCommand(command);
-            
-            if (response.startsWith("OK")) {
-                mainWindow.setStatus("סטטוס העובד עודכן בהצלחה", Color.GREEN);
-                refresh();
-            } else {
-                JOptionPane.showMessageDialog(this,
-                        "שגיאה בעדכון סטטוס: " + response,
-                        "שגיאה",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this,
-                    "שגיאה בתקשורת: " + e.getMessage(),
-                    "שגיאה",
-                    JOptionPane.ERROR_MESSAGE);
-        }
     }
     
     private void deleteEmployee() {
@@ -246,7 +205,7 @@ public class EmployeesManagementTab extends JPanel {
     }
     
     private void parseAndUpdateTable(String response) {
-        // פורמט: OK;employeeNumber:fullName:idNumber:phone:bankAccount:role:branchId:status|...
+        // פורמט: OK;employeeNumber:fullName:idNumber:phone:bankAccount:role:branchId|...
         String[] parts = response.split(";");
         if (parts.length < 2) return;
         
@@ -257,7 +216,7 @@ public class EmployeesManagementTab extends JPanel {
         for (String employee : employees) {
             if (employee.isEmpty()) continue;
             String[] fields = employee.split(":");
-            if (fields.length >= 8) {
+            if (fields.length >= 7) {
                 tableModel.addRow(new Object[]{
                     fields[0],  // employeeNumber
                     fields[1],  // fullName
@@ -265,8 +224,7 @@ public class EmployeesManagementTab extends JPanel {
                     fields[3],  // phone
                     fields[4],  // bankAccount
                     fields[5],  // role
-                    fields[6],  // branchId
-                    fields[7]   // status
+                    fields[6]   // branchId
                 });
             }
         }

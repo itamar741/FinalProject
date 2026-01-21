@@ -87,7 +87,6 @@ public class ClientHandler implements Runnable {
                          DuplicateEmployeeException |
                          InvalidQuantityException |
                          InsufficientStockException |
-                         InactiveProductException |
                          WeakPasswordException |
                          UserNotFoundException |
                          EmployeeNotFoundException |
@@ -121,7 +120,6 @@ public class ClientHandler implements Runnable {
             DuplicateEmployeeException,
             InvalidQuantityException,
             InsufficientStockException,
-            InactiveProductException,
             InvalidCredentialsException,
             UserAlreadyLoggedInException,
             UnauthorizedException,
@@ -167,7 +165,6 @@ public class ClientHandler implements Runnable {
         DuplicateEmployeeException,
         InvalidQuantityException,
         InsufficientStockException,
-        InactiveProductException,
         UnauthorizedException,
         WeakPasswordException,
         UserNotFoundException,
@@ -533,7 +530,6 @@ public class ClientHandler implements Runnable {
                             .append(p.getName()).append(":")
                             .append(p.getCategory()).append(":")
                             .append(p.getPrice()).append(":")
-                            .append(p.isActive() ? "active" : "inactive").append(":")
                             .append(quantity).append("|");
             }
             return productsList.toString();
@@ -564,7 +560,6 @@ public class ClientHandler implements Runnable {
                             .append(p.getName()).append(":")
                             .append(p.getCategory()).append(":")
                             .append(p.getPrice()).append(":")
-                            .append(p.isActive() ? "active" : "inactive").append(":")
                             .append(quantity).append("|");
             }
             return productsList.toString();
@@ -781,16 +776,6 @@ public class ClientHandler implements Runnable {
             controller.updateEmployee(parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
             return "OK;Employee updated successfully";
 
-        case "SET_EMPLOYEE_ACTIVE":
-            if (!PermissionChecker.canManageEmployees(role)) {
-                throw new UnauthorizedException("Only admin can activate/deactivate employees");
-            }
-            if (parts.length < 3) {
-                throw new IllegalArgumentException("SET_EMPLOYEE_ACTIVE requires: employeeNumber;active");
-            }
-            controller.setEmployeeActive(parts[1], Boolean.parseBoolean(parts[2]));
-            return "OK;Employee status updated successfully";
-
         case "DELETE_EMPLOYEE":
             if (!PermissionChecker.canManageEmployees(role)) {
                 throw new UnauthorizedException("Only admin can delete employees");
@@ -814,8 +799,7 @@ public class ClientHandler implements Runnable {
                              .append(emp.getPhone()).append(":")
                              .append(emp.getBankAccount()).append(":")
                              .append(emp.getRole()).append(":")
-                             .append(emp.getBranchId()).append(":")
-                             .append(emp.isActive() ? "active" : "inactive").append("|");
+                             .append(emp.getBranchId()).append("|");
             }
             return employeesList.toString();
 
@@ -830,7 +814,7 @@ public class ClientHandler implements Runnable {
             return "OK;" + employee.getEmployeeNumber() + ":" + employee.getFullName() + ":" + 
                    employee.getIdNumber() + ":" + employee.getPhone() + ":" + 
                    employee.getBankAccount() + ":" + employee.getRole() + ":" + 
-                   employee.getBranchId() + ":" + (employee.isActive() ? "active" : "inactive");
+                   employee.getBranchId();
 
         case "LIST_EMPLOYEES_BY_BRANCH":
             if (!PermissionChecker.canViewEmployees(role)) {
@@ -853,8 +837,7 @@ public class ClientHandler implements Runnable {
                                    .append(emp.getPhone()).append(":")
                                    .append(emp.getBankAccount()).append(":")
                                    .append(emp.getRole()).append(":")
-                                   .append(emp.getBranchId()).append(":")
-                                   .append(emp.isActive() ? "active" : "inactive").append("|");
+                                   .append(emp.getBranchId()).append("|");
             }
             return branchEmployeesList.toString();
 

@@ -1,11 +1,11 @@
 package model;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import model.exceptions.InvalidQuantityException;
 import model.exceptions.InsufficientStockException;
-import model.exceptions.InactiveProductException;
 
 /**
  * Manages the inventory for a single branch.
@@ -22,7 +22,7 @@ public class Inventory {
      * Constructs a new empty Inventory.
      */
     public Inventory() {
-        this.products = new HashMap<>();
+        this.products = Collections.synchronizedMap(new HashMap<>());
     }
 
     /**
@@ -40,41 +40,46 @@ public class Inventory {
             throw new InvalidQuantityException("Quantity must be greater than 0");
         }
 
-        Integer currentQuantity = products.get(product);
-        products.put(product,
-                currentQuantity == null ? quantity : currentQuantity + quantity);
+        // Synchronize for atomic read-modify-write operation
+        synchronized (products) {
+            Integer currentQuantity = products.get(product);
+            products.put(product,
+                    currentQuantity == null ? quantity : currentQuantity + quantity);
+        }
     }
 
     /**
      * Sells a product from the inventory (reduces quantity).
-     * Validates that the product is active and sufficient stock is available.
+     * Validates that sufficient stock is available.
      * 
      * @param product the product to sell
      * @param quantity the quantity to sell (must be greater than 0)
      * @throws InvalidQuantityException if quantity is less than or equal to 0
-     * @throws InactiveProductException if the product is not active
      * @throws InsufficientStockException if there is not enough stock available
      */
     public void sellProduct(Product product, int quantity)
             throws InvalidQuantityException,
-            InsufficientStockException,
-            InactiveProductException {
+            InsufficientStockException {
 
         if (quantity <= 0) {
             throw new InvalidQuantityException("Quantity must be greater than 0");
         }
 
-        if (!product.isActive()) {
-            throw new InactiveProductException("Product is inactive");
+        // Synchronize for atomic check-and-update operation
+        synchronized (products) {
+            Integer currentQuantity = products.get(product);
+
+            if (currentQuantity == null || currentQuantity < quantity) {
+                throw new InsufficientStockException("Not enough stock for product");
+            }
+
+            int newQuantity = currentQuantity - quantity;
+            if (newQuantity == 0) {
+                products.remove(product);
+            } else {
+                products.put(product, newQuantity);
+            }
         }
-
-        Integer currentQuantity = products.get(product);
-
-        if (currentQuantity == null || currentQuantity < quantity) {
-            throw new InsufficientStockException("Not enough stock for product");
-        }
-
-        products.put(product, currentQuantity - quantity);
     }
 
     /**
@@ -84,8 +89,10 @@ public class Inventory {
      * @return the quantity available, or 0 if the product is not in inventory
      */
     public int getProductQuantity(Product product) {
-        Integer quantity = products.get(product);
-        return quantity == null ? 0 : quantity;
+        synchronized (products) {
+            Integer quantity = products.get(product);
+            return quantity == null ? 0 : quantity;
+        }
     }
     
     /**
@@ -104,17 +111,20 @@ public class Inventory {
             throw new InvalidQuantityException("Quantity must be greater than 0");
         }
         
-        Integer currentQuantity = products.get(product);
-        
-        if (currentQuantity == null || currentQuantity < quantity) {
-            throw new InsufficientStockException("Not enough stock to remove");
-        }
-        
-        int newQuantity = currentQuantity - quantity;
-        if (newQuantity == 0) {
-            products.remove(product);
-        } else {
-            products.put(product, newQuantity);
+        // Synchronize for atomic check-and-update operation
+        synchronized (products) {
+            Integer currentQuantity = products.get(product);
+            
+            if (currentQuantity == null || currentQuantity < quantity) {
+                throw new InsufficientStockException("Not enough stock to remove");
+            }
+            
+            int newQuantity = currentQuantity - quantity;
+            if (newQuantity == 0) {
+                products.remove(product);
+            } else {
+                products.put(product, newQuantity);
+            }
         }
     }
     
@@ -125,7 +135,9 @@ public class Inventory {
      * @return a Map of Product to quantity
      */
     public Map<Product, Integer> getAllProducts() {
-        return new HashMap<>(products);
+        synchronized (products) {
+            return new HashMap<>(products);
+        }
     }
     
     /**
@@ -135,7 +147,9 @@ public class Inventory {
      * @param products the map of products and quantities to set
      */
     public void setProducts(Map<Product, Integer> products) {
-        this.products = new HashMap<>(products);
+        synchronized (this.products) {
+            this.products = Collections.synchronizedMap(new HashMap<>(products));
+        }
     }
     
     /**
@@ -147,7 +161,9 @@ public class Inventory {
      */
     public void loadProduct(Product product, int quantity) {
         if (product != null && quantity >= 0) {
-            products.put(product, quantity);
+            synchronized (products) {
+                products.put(product, quantity);
+            }
         }
     }
 }

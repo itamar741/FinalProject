@@ -808,5 +808,80 @@
     "actionType": "LOGOUT",
     "description": "User salesman1b1 logged out",
     "dateTime": "2026-01-21T16:34:55.807711100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:55636",
+    "dateTime": "2026-01-21T17:28:44.898508200"
+  },
+  {
+    "actionType": "DELETE_CUSTOMER",
+    "description": "Customer deleted: id=123456789",
+    "dateTime": "2026-01-21T17:28:58.305581600"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T17:38:48.377490300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:51690",
+    "dateTime": "2026-01-21T17:40:37.067579"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=222222222, name=RETURNING, type=RETURNING",
+    "dateTime": "2026-01-21T17:40:53.773011900"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=111111111, name=NEW, type=NEW",
+    "dateTime": "2026-01-21T17:41:02.711723"
+  },
+  {
+    "actionType": "UPDATE_CUSTOMER",
+    "description": "Customer updated: id=333333333, name=VIP, type=VIP",
+    "dateTime": "2026-01-21T17:41:11.324083800"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: cashier1b2, role=cashier, branch=B2",
+    "dateTime": "2026-01-21T17:42:44.707963400"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: cashier1b2, number=5, role=cashier, branch=B2, username=cashier1b2",
+    "dateTime": "2026-01-21T17:42:44.714168100"
+  },
+  {
+    "actionType": "CREATE_USER",
+    "description": "User created: salesman1b2, role=salesman, branch=B2",
+    "dateTime": "2026-01-21T17:43:32.529381400"
+  },
+  {
+    "actionType": "CREATE_EMPLOYEE",
+    "description": "Employee created: salesman1b2, number=6, role=salesman, branch=B2, username=salesman1b2",
+    "dateTime": "2026-01-21T17:43:32.533561800"
+  },
+  {
+    "actionType": "UPDATE_EMPLOYEE",
+    "description": "Employee updated: 3",
+    "dateTime": "2026-01-21T17:43:55.657441"
+  },
+  {
+    "actionType": "SET_EMPLOYEE_ACTIVE",
+    "description": "Employee 1 set to inactive",
+    "dateTime": "2026-01-21T17:44:13.804221400"
+  },
+  {
+    "actionType": "SET_EMPLOYEE_ACTIVE",
+    "description": "Employee 1 set to active",
+    "dateTime": "2026-01-21T17:44:15.886571600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:58172",
+    "dateTime": "2026-01-21T18:03:37.352061500"
   }
 ]

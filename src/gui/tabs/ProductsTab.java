@@ -122,7 +122,7 @@ public class ProductsTab extends JPanel {
         }
         
         private void createTable() {
-            String[] columns = {"קוד מוצר", "שם", "קטגוריה", "מחיר", "סטטוס", "כמות במלאי"};
+            String[] columns = {"קוד מוצר", "שם", "קטגוריה", "מחיר", "כמות במלאי"};
             tableModel = new DefaultTableModel(columns, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
@@ -177,18 +177,16 @@ public class ProductsTab extends JPanel {
                     continue;
                 }
                 
-                // פיצול לפי ":" (productId:name:category:price:active:quantity)
+                // פיצול לפי ":" (productId:name:category:price:quantity)
                 String[] parts = productStr.split(":");
-                if (parts.length >= 6) {
+                if (parts.length >= 5) {
                     String productId = parts[0];
                     String name = parts[1];
                     String category = parts[2];
                     String price = parts[3];
-                    String active = parts[4];
-                    String quantity = parts[5];
+                    String quantity = parts[4];
                     
-                    String status = active.equals("active") ? "פעיל" : "לא פעיל";
-                    tableModel.addRow(new Object[]{productId, name, category, price, status, quantity});
+                    tableModel.addRow(new Object[]{productId, name, category, price, quantity});
                 }
             }
         }

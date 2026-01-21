@@ -1,5 +1,6 @@
 package model.managers;
 import model.Branch;
+import java.util.Collections;
 import java.util.*;
 
 /**
@@ -17,7 +18,7 @@ public class BranchManager {
      * Constructs a new BranchManager with default branches B1 and B2.
      */
     public BranchManager() {
-        branches = new HashMap<>();
+        branches = Collections.synchronizedMap(new HashMap<>());
         // Create default branches
         branches.put("B1", new Branch("B1"));
         branches.put("B2", new Branch("B2"));
@@ -30,8 +31,10 @@ public class BranchManager {
      * @param branchId the unique branch identifier
      */
     public void addBranch(String branchId) {
-        if (!branches.containsKey(branchId)) {
-            branches.put(branchId, new Branch(branchId));
+        synchronized (branches) {
+            if (!branches.containsKey(branchId)) {
+                branches.put(branchId, new Branch(branchId));
+            }
         }
     }
     
@@ -42,7 +45,9 @@ public class BranchManager {
      * @return the Branch object, or null if not found
      */
     public Branch getBranch(String branchId) {
-        return branches.get(branchId);
+        synchronized (branches) {
+            return branches.get(branchId);
+        }
     }
     
     /**
@@ -52,7 +57,9 @@ public class BranchManager {
      * @return a Map of branchId to Branch
      */
     public Map<String, Branch> getAllBranches() {
-        return new HashMap<>(branches);
+        synchronized (branches) {
+            return new HashMap<>(branches);
+        }
     }
     
     /**
@@ -61,7 +68,9 @@ public class BranchManager {
      * @return a list of branch IDs
      */
     public List<String> getBranchIds() {
-        return new ArrayList<>(branches.keySet());
+        synchronized (branches) {
+            return new ArrayList<>(branches.keySet());
+        }
     }
     
     /**
@@ -71,14 +80,16 @@ public class BranchManager {
      * @param branchIds the list of branch IDs to load
      */
     public void loadBranches(List<String> branchIds) {
-        branches.clear();
-        for (String branchId : branchIds) {
-            branches.put(branchId, new Branch(branchId));
-        }
-        // If no branches, create defaults
-        if (branches.isEmpty()) {
-            branches.put("B1", new Branch("B1"));
-            branches.put("B2", new Branch("B2"));
+        synchronized (branches) {
+            branches.clear();
+            for (String branchId : branchIds) {
+                branches.put(branchId, new Branch(branchId));
+            }
+            // If no branches, create defaults
+            if (branches.isEmpty()) {
+                branches.put("B1", new Branch("B1"));
+                branches.put("B2", new Branch("B2"));
+            }
         }
     }
 }

@@ -6,7 +6,6 @@ import model.Product;
 
 import model.exceptions.InvalidQuantityException;
 import model.exceptions.InsufficientStockException;
-import model.exceptions.InactiveProductException;
 
 /**
  * Manages inventory operations for branches.
@@ -57,15 +56,13 @@ public class InventoryManager {
      * @param product the product to sell
      * @param quantity the quantity to sell (must be greater than 0)
      * @throws InvalidQuantityException if quantity is less than or equal to 0
-     * @throws InactiveProductException if the product is not active
      * @throws InsufficientStockException if there is not enough stock available
      */
     public void sellProduct(Branch branch,
                             Product product,
                             int quantity)
             throws InvalidQuantityException,
-            InsufficientStockException,
-            InactiveProductException {
+            InsufficientStockException {
 
         Inventory inventory = branch.getInventory();
         inventory.sellProduct(product, quantity);

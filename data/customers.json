@@ -1,26 +1,20 @@
 {
-  "123456789": {
-    "fullName": "איתמר",
-    "idNumber": "123456789",
-    "phone": "0",
-    "customerType": "NEW"
-  },
   "222222222": {
     "fullName": "RETURNING",
     "idNumber": "222222222",
-    "phone": "0",
+    "phone": "2222222222",
     "customerType": "RETURNING"
   },
   "111111111": {
     "fullName": "NEW",
     "idNumber": "111111111",
-    "phone": "0",
+    "phone": "1111111111",
     "customerType": "NEW"
   },
   "333333333": {
     "fullName": "VIP",
     "idNumber": "333333333",
-    "phone": "0",
+    "phone": "3333333333",
     "customerType": "VIP"
   }
 }

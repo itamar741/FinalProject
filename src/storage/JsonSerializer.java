@@ -97,10 +97,10 @@ public class JsonSerializer {
     
     private String toJsonEmployeeData(EmployeeData emp) {
         return String.format(
-            "{\n  \"fullName\": \"%s\",\n  \"idNumber\": \"%s\",\n  \"phone\": \"%s\",\n  \"bankAccount\": \"%s\",\n  \"employeeNumber\": \"%s\",\n  \"role\": \"%s\",\n  \"branchId\": \"%s\",\n  \"active\": %s\n}",
+            "{\n  \"fullName\": \"%s\",\n  \"idNumber\": \"%s\",\n  \"phone\": \"%s\",\n  \"bankAccount\": \"%s\",\n  \"employeeNumber\": \"%s\",\n  \"role\": \"%s\",\n  \"branchId\": \"%s\"\n}",
             escapeJson(emp.fullName), escapeJson(emp.idNumber), escapeJson(emp.phone),
             escapeJson(emp.bankAccount), escapeJson(emp.employeeNumber), escapeJson(emp.role),
-            escapeJson(emp.branchId), emp.active
+            escapeJson(emp.branchId)
         );
     }
     
@@ -113,16 +113,16 @@ public class JsonSerializer {
     
     private String toJsonProductData(ProductData prod) {
         return String.format(
-            "{\n  \"productId\": \"%s\",\n  \"name\": \"%s\",\n  \"category\": \"%s\",\n  \"price\": %.2f,\n  \"active\": %s\n}",
-            escapeJson(prod.productId), escapeJson(prod.name), escapeJson(prod.category), prod.price, prod.active
+            "{\n  \"productId\": \"%s\",\n  \"name\": \"%s\",\n  \"category\": \"%s\",\n  \"price\": %.2f\n}",
+            escapeJson(prod.productId), escapeJson(prod.name), escapeJson(prod.category), prod.price
         );
     }
     
     private String toJsonProduct(Product prod) {
         return String.format(
-            "{\n  \"productId\": \"%s\",\n  \"name\": \"%s\",\n  \"category\": \"%s\",\n  \"price\": %.2f,\n  \"active\": %s\n}",
+            "{\n  \"productId\": \"%s\",\n  \"name\": \"%s\",\n  \"category\": \"%s\",\n  \"price\": %.2f\n}",
             escapeJson(prod.getProductId()), escapeJson(prod.getName()), escapeJson(prod.getCategory()),
-            prod.getPrice(), prod.isActive()
+            prod.getPrice()
         );
     }
     
@@ -248,7 +248,6 @@ public class JsonSerializer {
         emp.employeeNumber = extractString(json, "employeeNumber");
         emp.role = extractString(json, "role");
         emp.branchId = extractString(json, "branchId");
-        emp.active = extractBoolean(json, "active");
         return emp;
     }
     
@@ -340,7 +339,6 @@ public class JsonSerializer {
         prod.name = extractString(json, "name");
         prod.category = extractString(json, "category");
         prod.price = extractDouble(json, "price");
-        prod.active = extractBoolean(json, "active");
         return prod;
     }
     

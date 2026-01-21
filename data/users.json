@@ -39,11 +39,27 @@
     "active": true,
     "mustChangePassword": false
   },
+  "cashier1b2": {
+    "username": "cashier1b2",
+    "password": "cashier1b2",
+    "role": "cashier",
+    "branchId": "B2",
+    "active": true,
+    "mustChangePassword": false
+  },
   "salesman1b1": {
     "username": "salesman1b1",
     "password": "salesman1b1",
     "role": "salesman",
     "branchId": "B1",
+    "active": true,
+    "mustChangePassword": false
+  },
+  "salesman1b2": {
+    "username": "salesman1b2",
+    "password": "salesman1b2",
+    "role": "salesman",
+    "branchId": "B2",
     "active": true,
     "mustChangePassword": false
   }

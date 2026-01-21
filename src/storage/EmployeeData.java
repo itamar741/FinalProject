@@ -16,7 +16,6 @@ public class EmployeeData {
     public String employeeNumber;
     public String role;
     public String branchId;
-    public boolean active;
     
     /**
      * Default constructor for JSON deserialization.
@@ -36,7 +35,6 @@ public class EmployeeData {
         this.employeeNumber = employee.getEmployeeNumber();
         this.role = employee.getRole();
         this.branchId = employee.getBranchId();
-        this.active = employee.isActive();
     }
     
     /**
@@ -45,11 +43,9 @@ public class EmployeeData {
      * @return an Employee object with all fields set
      */
     public Employee toEmployee() {
-        Employee employee = new Employee(
+        return new Employee(
             fullName, idNumber, phone, bankAccount,
             employeeNumber, role, branchId
         );
-        employee.setActive(active);
-        return employee;
     }
 }

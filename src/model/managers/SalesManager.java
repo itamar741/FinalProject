@@ -2,6 +2,7 @@ package model.managers;
 
 import model.Sale;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -19,7 +20,7 @@ public class SalesManager {
      * Constructs a new SalesManager with an empty sales list.
      */
     public SalesManager() {
-        this.sales = new ArrayList<>();
+        this.sales = Collections.synchronizedList(new ArrayList<>());
     }
 
     /**
@@ -37,11 +38,13 @@ public class SalesManager {
 
     /**
      * Gets all sales records.
-     * Returns the actual list (not a copy) for performance - caller should not modify.
+     * Returns a defensive copy to prevent external modification and ensure thread-safe iteration.
      * 
-     * @return the list of all sales
+     * @return a copy of the list of all sales
      */
     public List<Sale> getSales() {
-        return sales;
+        synchronized (sales) {
+            return new ArrayList<>(sales);
+        }
     }
 }

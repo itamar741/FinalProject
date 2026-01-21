@@ -3,14 +3,14 @@ package model.managers;
 import model.Session;
 import model.exceptions.UserAlreadyLoggedInException;
 import java.net.Socket;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Manages active user sessions.
  * Prevents duplicate logins by tracking active sessions per username.
- * Uses ConcurrentHashMap for thread-safety in multi-threaded server environment.
+ * Uses synchronized collections for thread-safety in multi-threaded server environment.
  * Maintains two maps: one by username (for quick duplicate check), one by socket (for retrieval by connection).
  * 
  * @author FinalProject
@@ -27,8 +27,8 @@ public class SessionManager {
      * Constructs a new SessionManager with empty session maps.
      */
     public SessionManager() {
-        this.activeSessions = new ConcurrentHashMap<>();
-        this.sessionsBySocket = new ConcurrentHashMap<>();
+        this.activeSessions = Collections.synchronizedMap(new HashMap<>());
+        this.sessionsBySocket = Collections.synchronizedMap(new HashMap<>());
     }
     
     /**
@@ -48,18 +48,21 @@ public class SessionManager {
                                 Socket socket)
             throws UserAlreadyLoggedInException {
         
-        // Check if user is already logged in
-        if (activeSessions.containsKey(username)) {
-            throw new UserAlreadyLoggedInException(
-                "User " + username + " is already logged in from another location"
-            );
+        // Synchronize for atomic check-and-put operation
+        synchronized (activeSessions) {
+            // Check if user is already logged in
+            if (activeSessions.containsKey(username)) {
+                throw new UserAlreadyLoggedInException(
+                    "User " + username + " is already logged in from another location"
+                );
+            }
+            
+            Session session = new Session(username, branchId, role, socket);
+            activeSessions.put(username, session);
+            sessionsBySocket.put(socket, session);
+            
+            return session;
         }
-        
-        Session session = new Session(username, branchId, role, socket);
-        activeSessions.put(username, session);
-        sessionsBySocket.put(socket, session);
-        
-        return session;
     }
     
     /**
@@ -69,9 +72,11 @@ public class SessionManager {
      * @param socket the socket connection to remove
      */
     public void removeSession(Socket socket) {
-        Session session = sessionsBySocket.remove(socket);
-        if (session != null) {
-            activeSessions.remove(session.getUsername());
+        synchronized (activeSessions) {
+            Session session = sessionsBySocket.remove(socket);
+            if (session != null) {
+                activeSessions.remove(session.getUsername());
+            }
         }
     }
     
@@ -122,6 +127,8 @@ public class SessionManager {
      * @return a Map of username to Session
      */
     public Map<String, Session> getAllActiveSessions() {
-        return new HashMap<>(activeSessions);
+        synchronized (activeSessions) {
+            return new HashMap<>(activeSessions);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package model.managers;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class CustomerManager {
      * Constructs a new CustomerManager with an empty customer map.
      */
     public CustomerManager() {
-        customers = new HashMap<>();
+        customers = Collections.synchronizedMap(new HashMap<>());
     }
 
     /**
@@ -44,12 +45,6 @@ public class CustomerManager {
                             String phone,
                             String customerType)
             throws DuplicateCustomerException {
-
-        if (customers.containsKey(idNumber)) {
-            throw new DuplicateCustomerException(
-                    "Customer with ID " + idNumber + " already exists"
-            );
-        }
 
         Customer customer;
 
@@ -70,7 +65,15 @@ public class CustomerManager {
                 throw new IllegalArgumentException("Unknown customer type");
         }
 
-        customers.put(idNumber, customer);
+        // Synchronize for atomic check-and-put operation
+        synchronized (customers) {
+            if (customers.containsKey(idNumber)) {
+                throw new DuplicateCustomerException(
+                        "Customer with ID " + idNumber + " already exists"
+                );
+            }
+            customers.put(idNumber, customer);
+        }
     }
 
     /**
@@ -80,7 +83,9 @@ public class CustomerManager {
      * @return the Customer object, or null if not found
      */
     public Customer getCustomerById(String idNumber) {
-        return customers.get(idNumber);
+        synchronized (customers) {
+            return customers.get(idNumber);
+        }
     }
     
     /**
@@ -97,39 +102,42 @@ public class CustomerManager {
                                String fullName,
                                String phone,
                                String customerType) {
-        Customer customer = customers.get(idNumber);
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer with ID " + idNumber + " not found");
-        }
-        
-        // Get current values
-        String newFullName = (fullName != null && !fullName.trim().isEmpty()) ? fullName : customer.getFullName();
-        String newPhone = (phone != null && !phone.trim().isEmpty()) ? phone : customer.getPhone();
-        String newType = (customerType != null && !customerType.trim().isEmpty()) ? customerType.toUpperCase() : getCustomerType(customer);
-        
-        // If customer type changed, create new customer object of new type
-        String currentType = getCustomerType(customer);
-        if (!currentType.equals(newType)) {
-            // Create new customer of different type
-            Customer newCustomer;
-            switch (newType) {
-                case "NEW":
-                    newCustomer = new NewCustomer(newFullName, idNumber, newPhone);
-                    break;
-                case "RETURNING":
-                    newCustomer = new ReturningCustomer(newFullName, idNumber, newPhone);
-                    break;
-                case "VIP":
-                    newCustomer = new VipCustomer(newFullName, idNumber, newPhone);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid customer type: " + newType);
+        // Synchronize for atomic update operation
+        synchronized (customers) {
+            Customer customer = customers.get(idNumber);
+            if (customer == null) {
+                throw new IllegalArgumentException("Customer with ID " + idNumber + " not found");
             }
-            customers.put(idNumber, newCustomer);
-        } else {
-            // Only update name and phone
-            customer.setFullName(newFullName);
-            customer.setPhone(newPhone);
+            
+            // Get current values
+            String newFullName = (fullName != null && !fullName.trim().isEmpty()) ? fullName : customer.getFullName();
+            String newPhone = (phone != null && !phone.trim().isEmpty()) ? phone : customer.getPhone();
+            String newType = (customerType != null && !customerType.trim().isEmpty()) ? customerType.toUpperCase() : getCustomerType(customer);
+            
+            // If customer type changed, create new customer object of new type
+            String currentType = getCustomerType(customer);
+            if (!currentType.equals(newType)) {
+                // Create new customer of different type
+                Customer newCustomer;
+                switch (newType) {
+                    case "NEW":
+                        newCustomer = new NewCustomer(newFullName, idNumber, newPhone);
+                        break;
+                    case "RETURNING":
+                        newCustomer = new ReturningCustomer(newFullName, idNumber, newPhone);
+                        break;
+                    case "VIP":
+                        newCustomer = new VipCustomer(newFullName, idNumber, newPhone);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Invalid customer type: " + newType);
+                }
+                customers.put(idNumber, newCustomer);
+            } else {
+                // Only update name and phone
+                customer.setFullName(newFullName);
+                customer.setPhone(newPhone);
+            }
         }
     }
     
@@ -157,9 +165,11 @@ public class CustomerManager {
      * @throws IllegalArgumentException if customer not found
      */
     public void deleteCustomer(String idNumber) {
-        Customer customer = customers.remove(idNumber);
-        if (customer == null) {
-            throw new IllegalArgumentException("Customer with ID " + idNumber + " not found");
+        synchronized (customers) {
+            Customer customer = customers.remove(idNumber);
+            if (customer == null) {
+                throw new IllegalArgumentException("Customer with ID " + idNumber + " not found");
+            }
         }
     }
     
@@ -170,6 +180,8 @@ public class CustomerManager {
      * @return a Map of idNumber to Customer
      */
     public Map<String, Customer> getAllCustomers() {
-        return new HashMap<>(customers);
+        synchronized (customers) {
+            return new HashMap<>(customers);
+        }
     }
 }
