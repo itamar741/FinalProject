@@ -55,67 +55,57 @@ e. A login window will open
 
 3. Connecting from Multiple Computers (Different Networks)
 ----------------------------------------------------------
-To connect computers from different networks (not on the same WiFi/Ethernet):
+The client.config file already contains the server's public IP address: 193.106.52.33
 
-IMPORTANT: The server computer needs a public IP address and port forwarding configured.
+If you download the project from Git:
+- The client.config file already exists with the correct server address
+- Just run LoginWindow and the software will connect to the server automatically
+- Works from any network (home, office, cafe, etc.)
 
-Step 1: Get the server's public IP address
-- On the server computer, open a web browser
-- Go to: https://whatismyipaddress.com (or any similar service)
-- Note the public IP address shown (for example: 85.123.45.67)
-- This is the IP address that clients from other networks will use
+IMPORTANT: The server must have port forwarding configured on its router:
+- Port 5000 must be forwarded to the server computer's local IP
+- Firewall must allow port 5000
 
-Step 2: Configure Port Forwarding on the server's router
-- Access your router's admin panel (usually http://192.168.1.1 or http://192.168.0.1)
-- Find "Port Forwarding" or "Virtual Server" settings
-- Add a new rule:
-  - External Port: 5000
-  - Internal Port: 5000
-  - Internal IP: [The server computer's local IP, e.g., 192.168.56.1]
+Server Setup (Only for the person running the server):
+- Configure Port Forwarding on the router:
+  - Access router admin panel (usually http://192.168.1.1 or http://192.168.0.1)
+  - Find "Port Forwarding" or "Virtual Server" settings
+  - Add rule: External Port 5000 -> Internal Port 5000 -> Server's local IP
   - Protocol: TCP
-- Save the settings
+- Configure Firewall:
+  - Allow port 5000 in Windows Firewall
+  - Make sure Java is allowed through firewall
 
-Step 3: Update client.config on all client computers
-- Open client.config file
-- Change serverHost to the public IP address from Step 1:
-  serverHost=85.123.45.67
-  (Replace 85.123.45.67 with your actual public IP)
-- Save the file
-
-Step 4: Configure Firewall on server computer
-- Allow port 5000 in Windows Firewall (or your firewall software)
-- Make sure Java is allowed through the firewall
-
-Now clients from any network can connect using the public IP address!
-
-Note: If the server's public IP changes (dynamic IP), you'll need to update client.config on all clients.
+Client Setup (Everyone else):
+- Download project from Git
+- client.config already contains: serverHost=193.106.52.33
+- Just run LoginWindow - it will connect automatically!
 
 
 4. Example - Using 3 Computers from Different Networks
 --------------------------------------------------------
-Computer 1 (Server) - Home Network:
-- Public IP: 85.123.45.67 (example)
-- Local IP: 192.168.56.1
+Computer 1 (Server):
+- Public IP: 193.106.52.33
 - Runs ServerMain
-- Port forwarding configured on router (port 5000 -> 192.168.56.1:5000)
+- Port forwarding configured (port 5000)
 - Firewall allows port 5000
 - Keeps the server open
 
-Computer 2 - Different Network (Office):
+Computer 2 - Any Network (Office, Home, Cafe, etc.):
 - Downloads project from Git
-- Updates client.config: serverHost=85.123.45.67
+- client.config already contains: serverHost=193.106.52.33
 - Runs LoginWindow
-- Connects to server using public IP
+- Connects to server automatically
 
-Computer 3 - Different Network (Cafe):
+Computer 3 - Any Network:
 - Downloads project from Git
-- Updates client.config: serverHost=85.123.45.67
+- client.config already contains: serverHost=193.106.52.33
 - Runs LoginWindow
-- Connects to the same server using public IP
+- Connects to the same server automatically
 
 All users see the same data and communicate with each other in chat!
 
-Note: All clients must use the server's PUBLIC IP address, not the local IP.
+Note: All clients automatically use the server's public IP (193.106.52.33) - no configuration needed!
 
 
 5. Default Users
@@ -131,25 +121,24 @@ Use this for initial login.
 If the client cannot connect to the server and you see "Cannot connect to server" error:
 
 Step 1: Check the server is running
-- On the server computer (192.168.56.1), make sure ServerMain is running
+- On the server computer (193.106.52.33), make sure ServerMain is running
 - You should see "Server listening on port 5000" message
+- You should see "Server is ready to accept connections from any network interface"
 - If not, restart the server
 
 Step 2: Check client.config file
 - On the client computer, open client.config file
-- If on the SAME network as server: serverHost=192.168.56.1 (server's local IP)
-- If on DIFFERENT network: serverHost=[server's public IP] (see section 3)
+- It should contain: serverHost=193.106.52.33
 - Make sure there are no extra spaces or characters
 - The file should be in the project root folder (same folder as src/)
+- If the file is missing or has wrong IP, download the project again from Git
 
 Step 3: Check network connection
-- If computers are on the SAME network:
-  - Try to ping the server's local IP: ping 192.168.56.1
-  - If ping fails, check network connection
-- If computers are on DIFFERENT networks:
-  - You need the server's PUBLIC IP address (see section 3)
-  - Try to ping the public IP: ping [public-ip]
-  - Make sure port forwarding is configured on the server's router
+- Try to ping the server's public IP:
+  - Windows: ping 193.106.52.33
+  - Linux/Mac: ping 193.106.52.33
+- If ping fails, check your internet connection
+- If ping succeeds but connection fails, check port forwarding on server's router
 
 Step 4: Check Firewall
 - On the server computer (192.168.56.1), check Windows Firewall:
@@ -164,14 +153,10 @@ Step 5: Check console messages
 - If you see a different IP address, the client.config file is not being read correctly
 
 Step 6: Verify server IP address
-- If clients are on the SAME network as server:
-  - On server computer, find local IP: ipconfig (Windows) or ifconfig (Linux/Mac)
-  - Look for "IPv4 Address" (for example: 192.168.56.1)
-  - Make sure client.config has this local IP
-- If clients are on DIFFERENT networks:
-  - On server computer, find PUBLIC IP: visit https://whatismyipaddress.com
-  - Make sure client.config has the PUBLIC IP (not local IP)
-  - Make sure port forwarding is configured on the router (port 5000)
+- The server's public IP is: 193.106.52.33
+- Make sure client.config contains: serverHost=193.106.52.33
+- If you see a different IP in client.config, download the project again from Git
+- Make sure port forwarding is configured on the server's router (port 5000 -> server's local IP)
 
 Step 7: Test connection manually
 - On the client computer, test if you can reach the server:
@@ -183,9 +168,9 @@ Step 7: Test connection manually
 
 Step 8: Check console output
 - When running the client, check the console/terminal for these messages:
-  - "ClientConnection initialized with server host: 192.168.56.1" (should show the correct IP)
-  - "Attempting to connect to server at 192.168.56.1:5000"
-  - If you see "localhost" instead of "192.168.56.1", the client.config file is not being read
+  - "ClientConnection initialized with server host: 193.106.52.33" (should show this IP)
+  - "Attempting to connect to server at 193.106.52.33:5000"
+  - If you see "localhost" or a different IP, the client.config file is not being read correctly
 - When running the server, check for:
   - "Server listening on port 5000"
   - "Server is ready to accept connections from any network interface"
