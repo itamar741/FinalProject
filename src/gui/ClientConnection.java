@@ -30,6 +30,16 @@ public class ClientConnection {
     }
     
     /**
+     * Constructs a new ClientConnection with a specific server host.
+     * 
+     * @param serverHost the server host address to connect to
+     */
+    public ClientConnection(String serverHost) {
+        this.serverHost = serverHost;
+        System.out.println("ClientConnection initialized with server host: " + serverHost);
+    }
+    
+    /**
      * Gets the server host address from configuration file or default.
      * 
      * @return the server host address

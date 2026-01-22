@@ -13,7 +13,8 @@ public class LoginWindow extends JFrame {
     private JPasswordField passwordField;
     private JButton loginButton;
     private ClientConnection connection;
-    private boolean loginSuccessful = false;  // האם ההתחברות הצליחה וה-MainWindow נפתח
+    private boolean loginSuccessful = false;
+    private boolean usingLocalServer = false;  
     
     public LoginWindow() {
         setTitle("התחברות למערכת");
@@ -22,7 +23,6 @@ public class LoginWindow extends JFrame {
         setLocationRelativeTo(null);
         setResizable(false);
         
-        // יצירת UI
         createUI();
     }
     
@@ -109,13 +109,50 @@ public class LoginWindow extends JFrame {
             
             // ניסיון התחברות לשרת
             if (!connection.connect()) {
-                JOptionPane.showMessageDialog(this,
-                        "לא ניתן להתחבר לשרת.\nאנא וודא שהשרת פועל ושה-client.config מכיל את כתובת השרת הנכונה.",
+                // Try to start local server
+                int option = JOptionPane.showConfirmDialog(this,
+                        "לא ניתן להתחבר לשרת המרוחק.\nהאם להריץ שרת מקומי?",
                         "שגיאת חיבור",
-                        JOptionPane.ERROR_MESSAGE);
-                loginButton.setEnabled(true);
-                loginButton.setText("התחבר");
-                return;
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.QUESTION_MESSAGE);
+                
+                if (option == JOptionPane.YES_OPTION) {
+                    // Start local server
+                    if (startLocalServer()) {
+                        // Wait a bit for server to start
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        
+                        // Try to connect to localhost
+                        connection = new ClientConnection("localhost");
+                        if (connection.connect()) {
+                            usingLocalServer = true;
+                        } else {
+                            JOptionPane.showMessageDialog(this,
+                                    "לא ניתן להתחבר לשרת המקומי.\nאנא נסה שוב מאוחר יותר.",
+                                    "שגיאת חיבור",
+                                    JOptionPane.ERROR_MESSAGE);
+                            loginButton.setEnabled(true);
+                            loginButton.setText("התחבר");
+                            return;
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(this,
+                                "לא ניתן להריץ שרת מקומי.\nהפורט 5000 כנראה תפוס.",
+                                "שגיאה",
+                                JOptionPane.ERROR_MESSAGE);
+                        loginButton.setEnabled(true);
+                        loginButton.setText("התחבר");
+                        return;
+                    }
+                } else {
+                    loginButton.setEnabled(true);
+                    loginButton.setText("התחבר");
+                    return;
+                }
             }
             
             String response = connection.login(username, password);
@@ -170,6 +207,49 @@ public class LoginWindow extends JFrame {
                     "תגובה לא מוכרת מהשרת: " + response,
                     "שגיאה",
                     JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Starts a local server in a separate thread.
+     * 
+     * @return true if server started successfully, false otherwise
+     */
+    private boolean startLocalServer() {
+        try {
+            // Check if server is already running
+            if (LocalServerRunner.isServerRunning()) {
+                System.out.println("Local server already running");
+                return true;
+            }
+            
+            // Start local server
+            LocalServerRunner server = LocalServerRunner.getInstance();
+            if (!server.isRunning()) {
+                server.start();
+                // Wait for server to initialize (up to 3 seconds)
+                for (int i = 0; i < 30; i++) {
+                    Thread.sleep(100);
+                    if (server.isRunning() && LocalServerRunner.isServerRunning()) {
+                        System.out.println("Local server started successfully");
+                        return true;
+                    }
+                }
+                // If still not running, check one more time
+                if (server.isRunning() && LocalServerRunner.isServerRunning()) {
+                    return true;
+                }
+                return false;
+            }
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while starting local server");
+            return false;
+        } catch (Exception e) {
+            System.err.println("Error starting local server: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     
