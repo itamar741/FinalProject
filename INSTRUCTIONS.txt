@@ -1,9 +1,17 @@
 Setup Instructions - Clothing Store Management System
 ======================================================
 
+IMPORTANT: If someone else is running the server for you, they need to follow 
+the "Server Setup" section (section 3) to configure their router and firewall.
+
 1. Running the Server
 ----------------------
 The server must run on one computer. All clients connect to the same server.
+
+IMPORTANT: If you're asking someone else to run the server on their computer, 
+they need to do the setup steps below. Send them this file or section 3 (Server Setup).
+
+IMPORTANT: If you're on a university/college network, it's recommended to use Mobile Hotspot from your phone (see Server Setup in section 3).
 
 Option A: Using IntelliJ IDEA (or another IDE)
 a. Open the project in IntelliJ IDEA
@@ -55,7 +63,7 @@ e. A login window will open
 
 3. Connecting from Multiple Computers (Different Networks)
 ----------------------------------------------------------
-The client.config file already contains the server's public IP address: 193.106.52.33
+The client.config file already contains the server's public IP address: 176.228.136.99
 
 If you download the project from Git:
 - The client.config file already exists with the correct server address
@@ -67,25 +75,42 @@ IMPORTANT: The server must have port forwarding configured on its router:
 - Firewall must allow port 5000
 
 Server Setup (Only for the person running the server):
-- Configure Port Forwarding on the router:
-  - Access router admin panel (usually http://192.168.1.1 or http://192.168.0.1)
-  - Find "Port Forwarding" or "Virtual Server" settings
-  - Add rule: External Port 5000 -> Internal Port 5000 -> Server's local IP
-  - Protocol: TCP
-- Configure Firewall:
-  - Allow port 5000 in Windows Firewall
-  - Make sure Java is allowed through firewall
+
+IMPORTANT: If you're on a university/company network, you may not have access to router settings.
+In that case, contact your network administrator to configure port forwarding.
+
+Option A: If you have access to your router (home network):
+- Access router admin panel:
+  - Common addresses: http://192.168.1.1, http://192.168.0.1, http://10.0.0.1
+  - To find your router IP: Open CMD, type "ipconfig", look for "Default Gateway"
+- Find "Port Forwarding" or "Virtual Server" settings
+- Add rule: External Port 5000 -> Internal Port 5000 -> Server's local IP (from ipconfig)
+- Protocol: TCP
+- Save settings
+
+Option B: If you're on a university/company network:
+- Contact your network administrator
+- Ask them to forward port 5000 to your computer's IP address (10.160.8.50)
+- Or ask if there's a different way to expose your server
+
+Configure Firewall:
+- Allow port 5000 in Windows Firewall:
+  - Open Windows Defender Firewall
+  - Advanced Settings -> Inbound Rules -> New Rule
+  - Port -> TCP -> Specific local ports: 5000 -> Allow connection
+- Or use PowerShell (run as Administrator):
+  netsh advfirewall firewall add rule name="Java Server Port 5000" dir=in action=allow protocol=TCP localport=5000
 
 Client Setup (Everyone else):
 - Download project from Git
-- client.config already contains: serverHost=193.106.52.33
+- client.config already contains: serverHost=176.228.136.99
 - Just run LoginWindow - it will connect automatically!
 
 
 4. Example - Using 3 Computers from Different Networks
 --------------------------------------------------------
 Computer 1 (Server):
-- Public IP: 193.106.52.33
+- Public IP: 176.228.136.99
 - Runs ServerMain
 - Port forwarding configured (port 5000)
 - Firewall allows port 5000
@@ -93,19 +118,19 @@ Computer 1 (Server):
 
 Computer 2 - Any Network (Office, Home, Cafe, etc.):
 - Downloads project from Git
-- client.config already contains: serverHost=193.106.52.33
+- client.config already contains: serverHost=176.228.136.99
 - Runs LoginWindow
 - Connects to server automatically
 
 Computer 3 - Any Network:
 - Downloads project from Git
-- client.config already contains: serverHost=193.106.52.33
+- client.config already contains: serverHost=176.228.136.99
 - Runs LoginWindow
 - Connects to the same server automatically
 
 All users see the same data and communicate with each other in chat!
 
-Note: All clients automatically use the server's public IP (193.106.52.33) - no configuration needed!
+Note: All clients automatically use the server's public IP (176.228.136.99) - no configuration needed!
 
 
 5. Default Users
@@ -121,55 +146,55 @@ Use this for initial login.
 If the client cannot connect to the server and you see "Cannot connect to server" error:
 
 Step 1: Check the server is running
-- On the server computer (193.106.52.33), make sure ServerMain is running
+- On the server computer (176.228.136.99), make sure ServerMain is running
 - You should see "Server listening on port 5000" message
 - You should see "Server is ready to accept connections from any network interface"
 - If not, restart the server
 
 Step 2: Check client.config file
 - On the client computer, open client.config file
-- It should contain: serverHost=193.106.52.33
+- It should contain: serverHost=176.228.136.99
 - Make sure there are no extra spaces or characters
 - The file should be in the project root folder (same folder as src/)
 - If the file is missing or has wrong IP, download the project again from Git
 
 Step 3: Check network connection
 - Try to ping the server's public IP:
-  - Windows: ping 193.106.52.33
-  - Linux/Mac: ping 193.106.52.33
+  - Windows: ping 176.228.136.99
+  - Linux/Mac: ping 176.228.136.99
 - If ping fails, check your internet connection
 - If ping succeeds but connection fails, check port forwarding on server's router
 
 Step 4: Check Firewall
-- On the server computer (192.168.56.1), check Windows Firewall:
+- On the server computer (176.228.136.99), check Windows Firewall:
   - Windows: Control Panel -> Windows Defender Firewall -> Allow an app
   - Make sure Java is allowed, or allow port 5000
 - On client computer, check if outgoing connections are blocked
 
 Step 5: Check console messages
 - When running the client, check the console/terminal output
-- You should see: "ClientConnection initialized with server host: 192.168.56.1"
-- You should see: "Attempting to connect to server at 192.168.56.1:5000"
+- You should see: "ClientConnection initialized with server host: 176.228.136.99"
+- You should see: "Attempting to connect to server at 176.228.136.99:5000"
 - If you see a different IP address, the client.config file is not being read correctly
 
 Step 6: Verify server IP address
-- The server's public IP is: 193.106.52.33
-- Make sure client.config contains: serverHost=193.106.52.33
+- The server's public IP is: 176.228.136.99
+- Make sure client.config contains: serverHost=176.228.136.99
 - If you see a different IP in client.config, download the project again from Git
 - Make sure port forwarding is configured on the server's router (port 5000 -> server's local IP)
 
 Step 7: Test connection manually
 - On the client computer, test if you can reach the server:
-  - Windows: Open CMD, type: telnet 192.168.56.1 5000
-  - If telnet is not available, try: Test-NetConnection -ComputerName 192.168.56.1 -Port 5000 (PowerShell)
-  - Linux/Mac: Open Terminal, type: telnet 192.168.56.1 5000 or: nc -zv 192.168.56.1 5000
+  - Windows: Open CMD, type: telnet 176.228.136.99 5000
+  - If telnet is not available, try: Test-NetConnection -ComputerName 176.228.136.99 -Port 5000 (PowerShell)
+  - Linux/Mac: Open Terminal, type: telnet 176.228.136.99 5000 or: nc -zv 176.228.136.99 5000
 - If connection fails, the problem is network/Firewall related
 - If connection succeeds, the problem is in the Java application
 
 Step 8: Check console output
 - When running the client, check the console/terminal for these messages:
-  - "ClientConnection initialized with server host: 193.106.52.33" (should show this IP)
-  - "Attempting to connect to server at 193.106.52.33:5000"
+  - "ClientConnection initialized with server host: 176.228.136.99" (should show this IP)
+  - "Attempting to connect to server at 176.228.136.99:5000"
   - If you see "localhost" or a different IP, the client.config file is not being read correctly
 - When running the server, check for:
   - "Server listening on port 5000"
