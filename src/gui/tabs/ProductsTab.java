@@ -8,6 +8,8 @@ import gui.dialogs.SellProductDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
@@ -29,7 +31,7 @@ public class ProductsTab extends JPanel {
     private JButton sellButton;
     private JButton removeFromInventoryButton;
     private JButton deleteProductButton;  // Admin only
-    private JButton refreshButton;
+    private Timer refreshTimer;
     
     /**
      * Constructs a new ProductsTab.
@@ -47,6 +49,16 @@ public class ProductsTab extends JPanel {
         
         setLayout(new BorderLayout());
         createUI();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refreshAllTabs());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -79,10 +91,6 @@ public class ProductsTab extends JPanel {
             deleteProductButton.addActionListener(e -> deleteSelectedProduct());
             buttonPanel.add(deleteProductButton);
         }
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refreshAllTabs());
-        buttonPanel.add(refreshButton);
         
         add(buttonPanel, BorderLayout.NORTH);
         

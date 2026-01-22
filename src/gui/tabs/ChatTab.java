@@ -38,7 +38,6 @@ public class ChatTab extends JPanel {
     private JButton requestChatButton;
     private JButton sendButton;
     private JButton endChatButton;
-    private JButton refreshButton;
     private JButton joinChatButton; // For shift manager
     private JButton acceptRequestButton; // For accepting chat request
     private JButton cancelRequestButton; // For canceling request
@@ -125,10 +124,6 @@ public class ChatTab extends JPanel {
         endChatButton.addActionListener(e -> endChat());
         endChatButton.setEnabled(false);
         buttonPanel.add(endChatButton);
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        buttonPanel.add(refreshButton);
         
         leftPanel.add(waitingLabel, BorderLayout.NORTH);
         leftPanel.add(waitingScroll, BorderLayout.CENTER);

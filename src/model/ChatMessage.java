@@ -19,7 +19,7 @@ public class ChatMessage {
      */
     public enum MessageType {
         TEXT,      // Regular user text message
-        SYSTEM     // System message (e.g., "Manager joined chat")
+        SYSTEM     // System message (..."Manager joined chat")
     }
     
     /**
@@ -38,28 +38,18 @@ public class ChatMessage {
         this.messageType = messageType;
     }
     
-    /**
-     * Gets the chat ID this message belongs to.
-     * 
-     * @return the chat ID
-     */
+    
     public String getChatId() {
         return chatId;
     }
     
-    /**
-     * Gets the sender's username.
-     * 
-     * @return the sender username, or "SYSTEM" for system messages
-     */
+   
     public String getSenderUsername() {
         return senderUsername;
     }
     
     /**
      * Gets the message content.
-     * 
-     * @return the message text
      */
     public String getMessage() {
         return message;
@@ -67,18 +57,13 @@ public class ChatMessage {
     
     /**
      * Gets the message timestamp (milliseconds since epoch).
-     * 
-     * @return the timestamp
+
      */
     public long getTimestamp() {
         return timestamp;
     }
     
-    /**
-     * Gets the message type.
-     * 
-     * @return the message type (TEXT or SYSTEM)
-     */
+
     public MessageType getMessageType() {
         return messageType;
     }
@@ -103,9 +88,6 @@ public class ChatMessage {
     
     /**
      * Escapes special JSON characters in a string.
-     * 
-     * @param str the string to escape
-     * @return the escaped string
      */
     private String escapeJson(String str) {
         if (str == null) return "";

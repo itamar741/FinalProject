@@ -43,4 +43,53 @@ Custom checked exceptions are used to represent business rule violations:
 - `DuplicateCustomerException`
 
 Business logic methods throw exceptions, while exception handling is performed in `Main`
-using `try/catch` bl
+using `try/catch` blocks.
+
+---
+
+## Dynamic DNS Setup
+
+The system supports automatic server discovery using Dynamic DNS (DuckDNS). This allows clients to connect to the server using a fixed domain name, even when the server's IP address changes.
+
+### Server Setup
+
+1. **Create a DuckDNS account:**
+   - Go to https://www.duckdns.org
+   - Sign in with your Google, Twitter, Reddit, or GitHub account
+   - Create a subdomain (e.g., "myserver")
+   - Copy your API token from the dashboard
+
+2. **Configure the server:**
+   - Copy `server.config.example` to `server.config`
+   - Edit `server.config` and fill in your domain and token:
+     ```
+     domain=myserver.duckdns.org
+     token=your-token-here
+     updateInterval=300
+     ```
+   - The `updateInterval` is in seconds (default: 300 = 5 minutes)
+
+3. **Run the server:**
+   - The server will automatically update the DNS record with its current public IP
+   - If `server.config` is missing or invalid, the server runs in localhost mode
+
+### Client Setup
+
+1. **Configure the client:**
+   - Copy `client.config.example` to `client.config`
+   - Edit `client.config` and set the server's domain name:
+     ```
+     serverHost=myserver.duckdns.org
+     ```
+   - The domain name must match the one configured in `server.config`
+
+2. **Run the client:**
+   - The client will automatically connect to the server using the domain name
+   - If `client.config` is missing, the client uses localhost (for local development)
+
+### Notes
+
+- The server needs internet connection to update DNS records
+- DNS updates happen automatically every 5 minutes (or as configured)
+- If DNS update fails, the server continues running (errors are logged)
+- Clients can connect from any network as long as they have the correct domain name

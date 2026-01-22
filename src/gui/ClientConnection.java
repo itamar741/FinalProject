@@ -1,14 +1,19 @@
 package gui;
 
 import java.io.*;
+import java.io.File;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * מחלקה לתקשורת עם השרת
+ * תומך ב-Dynamic DNS - קורא את כתובת השרת מקובץ תצורה או משתמש בברירת מחדל
  */
 public class ClientConnection {
     
-    private static final String DEFAULT_SERVER_HOST = "localhost";
+    private static final String DEFAULT_SERVER_HOST = "localhost"; // Fallback for local development
+    private static final String CLIENT_CONFIG_FILE = "client.config";
     private static final int SERVER_PORT = 5000;
     
     private String serverHost;
@@ -18,21 +23,69 @@ public class ClientConnection {
     private boolean connected = false;
     
     /**
-     * Constructs a new ClientConnection with default server host (localhost).
+     * Constructs a new ClientConnection.
+     * Reads server address from client.config file if it exists,
+     * otherwise uses default (localhost for development, or domain name if configured).
      */
     public ClientConnection() {
-        this.serverHost = DEFAULT_SERVER_HOST;
+        this.serverHost = getServerHostFromConfig();
     }
     
     /**
-     * Constructs a new ClientConnection with specified server host.
+     * Gets the server host address from configuration file or default.
      * 
-     * @param serverHost the server host address (IP or hostname)
+     * @return the server host address
      */
-    public ClientConnection(String serverHost) {
-        this.serverHost = (serverHost != null && !serverHost.trim().isEmpty()) 
-            ? serverHost.trim() 
-            : DEFAULT_SERVER_HOST;
+    private String getServerHostFromConfig() {
+        File configFile = new File(CLIENT_CONFIG_FILE);
+        if (configFile.exists()) {
+            try {
+                Map<String, String> config = readConfigFile(configFile);
+                String host = config.get("serverHost");
+                if (host != null && !host.trim().isEmpty()) {
+                    return host.trim();
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading client.config: " + e.getMessage());
+            }
+        }
+        
+        // Default: try to use a common domain name pattern
+        // Users should create client.config with their server's domain name
+        // For now, return localhost as fallback
+        return DEFAULT_SERVER_HOST;
+    }
+    
+    /**
+     * Reads configuration file and returns key-value pairs.
+     * 
+     * @param configFile the configuration file
+     * @return map of configuration key-value pairs
+     * @throws IOException if file cannot be read
+     */
+    private Map<String, String> readConfigFile(File configFile) throws IOException {
+        Map<String, String> config = new HashMap<>();
+        
+        try (BufferedReader reader = new BufferedReader(new FileReader(configFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                // Skip empty lines and comments
+                if (line.isEmpty() || line.startsWith("#")) {
+                    continue;
+                }
+                
+                // Parse key=value format
+                int equalsIndex = line.indexOf('=');
+                if (equalsIndex > 0) {
+                    String key = line.substring(0, equalsIndex).trim();
+                    String value = line.substring(equalsIndex + 1).trim();
+                    config.put(key, value);
+                }
+            }
+        }
+        
+        return config;
     }
     
     /**

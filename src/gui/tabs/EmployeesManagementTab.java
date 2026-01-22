@@ -8,6 +8,8 @@ import gui.dialogs.UpdateEmployeeDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
@@ -30,7 +32,7 @@ public class EmployeesManagementTab extends JPanel {
     private JButton createButton;
     private JButton updateButton;
     private JButton deleteButton;
-    private JButton refreshButton;
+    private Timer refreshTimer;
     
     /**
      * Constructs a new EmployeesManagementTab.
@@ -49,6 +51,16 @@ public class EmployeesManagementTab extends JPanel {
         setLayout(new BorderLayout());
         createUI();
         refresh();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refresh());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -73,10 +85,6 @@ public class EmployeesManagementTab extends JPanel {
         deleteButton = new JButton("מחק עובד");
         deleteButton.addActionListener(e -> deleteEmployee());
         buttonPanel.add(deleteButton);
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        buttonPanel.add(refreshButton);
         
         topPanel.add(buttonPanel, BorderLayout.CENTER);
         

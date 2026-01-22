@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Manages employee data and operations.
- * Maintains two maps for efficient lookup: by employeeNumber and by idNumber (for duplicate checking).
+ * Maintains maps for efficient lookup: by employeeNumber, by idNumber, and by phone (for duplicate checking).
  * 
  * @author FinalProject
  */
@@ -19,6 +19,7 @@ public class EmployeeManager {
     
     private Map<String, Employee> employees;  // employeeNumber -> Employee
     private Map<String, Employee> employeesByIdNumber;  // idNumber -> Employee (for duplicate checking)
+    private Map<String, Employee> employeesByPhone;  // phone -> Employee (for duplicate checking)
     private Map<String, String> usernameToEmployeeNumber;  // username -> employeeNumber
     
     /**
@@ -27,12 +28,13 @@ public class EmployeeManager {
     public EmployeeManager() {
         employees = Collections.synchronizedMap(new HashMap<>());
         employeesByIdNumber = Collections.synchronizedMap(new HashMap<>());
+        employeesByPhone = Collections.synchronizedMap(new HashMap<>());
         usernameToEmployeeNumber = Collections.synchronizedMap(new HashMap<>());
     }
     
     /**
      * Adds a new employee to the system.
-     * Checks for duplicates by both employeeNumber and idNumber.
+     * Checks for duplicates by employeeNumber, idNumber, and phone number.
      * 
      * @param fullName the employee's full name
      * @param idNumber the employee's ID number
@@ -41,7 +43,7 @@ public class EmployeeManager {
      * @param employeeNumber the unique employee number
      * @param role the employee's role (e.g., "manager", "cashier", "salesperson")
      * @param branchId the branch ID where the employee works
-     * @throws DuplicateEmployeeException if employee with same employeeNumber or idNumber already exists
+     * @throws DuplicateEmployeeException if employee with same employeeNumber, idNumber, or phone already exists
      */
     public void addEmployee(String fullName,
                            String idNumber,
@@ -60,13 +62,17 @@ public class EmployeeManager {
         
         // Synchronize on employees (main map) - ALWAYS use same lock order to prevent deadlock
         synchronized (employees) {
-            // Check if employee already exists (by employee number or ID number)
+            // Check if employee already exists (by employee number, ID number, or phone)
             if (employees.containsKey(employeeNumber)) {
                 throw new DuplicateEmployeeException("Employee with number " + employeeNumber + " already exists");
             }
             
             if (employeesByIdNumber.containsKey(idNumber)) {
                 throw new DuplicateEmployeeException("Employee with ID number " + idNumber + " already exists");
+            }
+            
+            if (employeesByPhone.containsKey(phone)) {
+                throw new DuplicateEmployeeException("Employee with phone number " + phone + " already exists");
             }
             
             // Create and add to all maps atomically
@@ -76,6 +82,7 @@ public class EmployeeManager {
             );
             employees.put(employeeNumber, employee);
             employeesByIdNumber.put(idNumber, employee);
+            employeesByPhone.put(phone, employee);
         }
     }
     
@@ -158,7 +165,7 @@ public class EmployeeManager {
     /**
      * Updates employee details.
      * Only updates fields that are provided (not null or empty).
-     * Validates phone number if provided.
+     * Validates phone number if provided and checks for duplicates.
      * 
      * @param employeeNumber the employee number
      * @param fullName the new full name (null or empty to keep current)
@@ -168,6 +175,7 @@ public class EmployeeManager {
      * @param branchId the new branch ID (null or empty to keep current)
      * @throws EmployeeNotFoundException if employee not found
      * @throws InvalidPhoneException if phone number is invalid
+     * @throws DuplicateEmployeeException if phone number is already used by another employee
      */
     public void updateEmployee(String employeeNumber, 
                               String fullName,
@@ -175,7 +183,7 @@ public class EmployeeManager {
                               String bankAccount,
                               String role,
                               String branchId)
-            throws EmployeeNotFoundException, InvalidPhoneException {
+            throws EmployeeNotFoundException, InvalidPhoneException, DuplicateEmployeeException {
         synchronized (employees) {
             Employee employee = employees.get(employeeNumber);
             if (employee == null) {
@@ -187,7 +195,20 @@ public class EmployeeManager {
             }
             if (phone != null && !phone.trim().isEmpty()) {
                 validatePhoneNumber(phone);  // Validate before updating
-                employee.setPhone(phone);
+                
+                // Check if phone number is already used by another employee
+                Employee existingEmployee = employeesByPhone.get(phone);
+                if (existingEmployee != null && !existingEmployee.getEmployeeNumber().equals(employeeNumber)) {
+                    throw new DuplicateEmployeeException("Employee with phone number " + phone + " already exists");
+                }
+                
+                // Remove old phone from map if it changed
+                String oldPhone = employee.getPhone();
+                if (!oldPhone.equals(phone)) {
+                    employeesByPhone.remove(oldPhone);
+                    employee.setPhone(phone);
+                    employeesByPhone.put(phone, employee);
+                }
             }
             if (bankAccount != null && !bankAccount.trim().isEmpty()) {
                 employee.setBankAccount(bankAccount);
@@ -203,7 +224,7 @@ public class EmployeeManager {
     
     /**
      * Deletes an employee from the system.
-     * Removes from both employee maps.
+     * Removes from all employee maps.
      * 
      * @param employeeNumber the employee number to delete
      * @throws EmployeeNotFoundException if employee not found
@@ -217,6 +238,7 @@ public class EmployeeManager {
             }
             employees.remove(employeeNumber);
             employeesByIdNumber.remove(employee.getIdNumber());
+            employeesByPhone.remove(employee.getPhone());
             
             // Find and remove username mapping (username -> employeeNumber)
             // Need to iterate to find the username that maps to this employeeNumber

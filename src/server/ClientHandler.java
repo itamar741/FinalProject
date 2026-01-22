@@ -15,6 +15,7 @@ import java.io.*;
 import java.net.Socket;
 import java.util.Map;
 import java.util.List;
+import java.util.Vector;
 import model.ReportEntry;
 import model.ChatMessage;
 import model.ChatSession;
@@ -34,6 +35,7 @@ public class ClientHandler implements Runnable {
 
     private final Socket socket;
     private final SystemController controller;
+    private final Vector<Socket> connectedClients;
     private Session currentSession;
     private boolean isAuthenticated = false;
 
@@ -42,10 +44,12 @@ public class ClientHandler implements Runnable {
      * 
      * @param socket the socket connection to the client
      * @param controller the SystemController to route commands to
+     * @param connectedClients the Vector containing all connected client sockets
      */
-    public ClientHandler(Socket socket, SystemController controller) {
+    public ClientHandler(Socket socket, SystemController controller, Vector<Socket> connectedClients) {
         this.socket = socket;
         this.controller = controller;
+        this.connectedClients = connectedClients;
     }
 
     /**
@@ -63,8 +67,6 @@ public class ClientHandler implements Runnable {
                         socket.getOutputStream(), true)
         ) {
             out.println("CONNECTED");
-            
-            // שלב אימות - חובה לפני כל פעולה אחרת
             String line;
             while ((line = in.readLine()) != null) {
                 
@@ -99,9 +101,20 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             System.out.println("Client IO error");
         } finally {
-            // אם המשתמש לא התנתק בצורה מסודרת
             if (isAuthenticated) {
                 controller.logout(socket);
+            }
+            
+            // Remove socket from Vector and close it
+            synchronized (connectedClients) {
+                connectedClients.remove(socket);
+            }
+            try {
+                if (socket != null && !socket.isClosed()) {
+                    socket.close();
+                }
+            } catch (IOException e) {
+                System.err.println("Error closing socket: " + e.getMessage());
             }
         }
     }
@@ -148,17 +161,13 @@ public class ClientHandler implements Runnable {
                 return "LOGOUT_SUCCESS";
             
             default:
-                // כל פקודה אחרת דורשת אימות
                 if (!isAuthenticated) {
                     throw new UnauthorizedException("You must login first");
                 }
-                
-                // המשך עם הפקודות הקיימות...
                 return handleAuthenticatedCommand(line);
         }
     }
 
-           
     private String handleAuthenticatedCommand(String line)
         throws DuplicateCustomerException,
         DuplicateUserException,
@@ -183,15 +192,9 @@ public class ClientHandler implements Runnable {
 
     switch (parts[0]) {
         case "ADD_CUSTOMER": {
-            // בדיקת פרמטרים
             if (parts.length < 5) {
                 throw new IllegalArgumentException("ADD_CUSTOMER requires: fullName;idNumber;phone;customerType");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים להוסיף לקוחות
-            // (אין צורך בבדיקת הרשאה מיוחדת, כל משתמש מחובר יכול)
-            
-            // בדיקת תקינות סוג לקוח
             String customerType = parts[4].toUpperCase();
             if (!customerType.equals("NEW") && 
                 !customerType.equals("RETURNING") && 
@@ -199,23 +202,15 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("Invalid customer type. Must be: NEW, RETURNING, or VIP");
             }
             
-            controller.addCustomer(
-                    parts[1],  // fullName
-                    parts[2],  // idNumber
-                    parts[3],  // phone
-                    customerType
-            );
+            controller.addCustomer(parts[1], parts[2], parts[3], customerType);
             
             return "OK;Customer added successfully";
         }
 
         case "UPDATE_CUSTOMER": {
-            // בדיקת פרמטרים
             if (parts.length < 5) {
                 throw new IllegalArgumentException("UPDATE_CUSTOMER requires: idNumber;fullName;phone;customerType");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים לעדכן לקוחות
             String customerType = parts[4].toUpperCase();
             if (!customerType.equals("NEW") && 
                 !customerType.equals("RETURNING") && 
@@ -223,45 +218,28 @@ public class ClientHandler implements Runnable {
                 throw new IllegalArgumentException("Invalid customer type. Must be: NEW, RETURNING, or VIP");
             }
             
-            controller.updateCustomer(
-                    parts[1],  // idNumber
-                    parts[2],  // fullName
-                    parts[3],  // phone
-                    customerType
-            );
+            controller.updateCustomer(parts[1], parts[2], parts[3], customerType);
             
             return "OK;Customer updated successfully";
         }
 
         case "DELETE_CUSTOMER": {
-            // בדיקת פרמטרים
             if (parts.length < 2) {
                 throw new IllegalArgumentException("DELETE_CUSTOMER requires: idNumber");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים למחוק לקוחות
             controller.deleteCustomer(parts[1]);
             
             return "OK;Customer deleted successfully";
         }
 
         case "ADD_PRODUCT_TO_INVENTORY": {
-            // בדיקת פרמטרים
             if (parts.length < 4) {
                 throw new IllegalArgumentException("ADD_PRODUCT_TO_INVENTORY requires: productId;quantity;branchId");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים להוסיף למלאי
-            // EMPLOYEE יכול רק לסניף שלו, ADMIN יכול לכל סניף
-            
             String requestedBranchId = parts[3];
-            
-            // בדיקה: EMPLOYEE יכול להוסיף רק לסניף שלו
             if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only add products to your own branch (" + currentSession.getBranchId() + "). Only ADMIN can add to any branch");
             }
-            
-            // בדיקת תקינות כמות
             int quantity;
             try {
                 quantity = Integer.parseInt(parts[2]);
@@ -272,32 +250,19 @@ public class ClientHandler implements Runnable {
                 throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
             }
             
-            controller.addProductToInventory(
-                    parts[1],  // productId
-                    quantity,
-                    requestedBranchId
-            );
+            controller.addProductToInventory(parts[1], quantity, requestedBranchId);
             
             return "OK;Product added to inventory successfully";
         }
 
         case "ADD_PRODUCT": {
-            // בדיקת פרמטרים
             if (parts.length < 7) {
                 throw new IllegalArgumentException("ADD_PRODUCT requires: productId;name;category;price;quantity;branchId");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים להוסיף מוצר חדש
-            // EMPLOYEE יכול רק לסניף שלו, ADMIN יכול לכל סניף
-            
             String requestedBranchId = parts[6];
-            
-            // בדיקה: EMPLOYEE יכול להוסיף רק לסניף שלו
             if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only add products to your own branch (" + currentSession.getBranchId() + "). Only ADMIN can add to any branch");
             }
-            
-            // בדיקת תקינות מחיר
             double price;
             try {
                 price = Double.parseDouble(parts[4]);
@@ -307,8 +272,6 @@ public class ClientHandler implements Runnable {
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid price format: " + parts[4]);
             }
-            
-            // בדיקת תקינות כמות
             int quantity;
             try {
                 quantity = Integer.parseInt(parts[5]);
@@ -318,43 +281,22 @@ public class ClientHandler implements Runnable {
             } catch (NumberFormatException e) {
                 throw new InvalidQuantityException("Invalid quantity format: " + parts[5]);
             }
-            
-            // בדיקה שכל השדות לא ריקים
-            if (parts[1].trim().isEmpty() || 
-                parts[2].trim().isEmpty() || 
-                parts[3].trim().isEmpty()) {
+            if (parts[1].trim().isEmpty() || parts[2].trim().isEmpty() || parts[3].trim().isEmpty()) {
                 throw new IllegalArgumentException("Product ID, name, and category cannot be empty");
             }
-            
-            controller.addProduct(
-                    parts[1],  // productId
-                    parts[2],  // name
-                    parts[3],  // category
-                    price,
-                    quantity,
-                    requestedBranchId
-            );
+            controller.addProduct(parts[1], parts[2], parts[3], price, quantity, requestedBranchId);
             
             return "OK;Product added successfully";
         }
 
         case "REMOVE_FROM_INVENTORY": {
-            // בדיקת פרמטרים
             if (parts.length < 4) {
                 throw new IllegalArgumentException("REMOVE_FROM_INVENTORY requires: productId;quantity;branchId");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים להסיר מהמלאי
-            // EMPLOYEE יכול רק מהסניף שלו, ADMIN יכול מכל סניף
-            
             String requestedBranchId = parts[3];
-            
-            // בדיקה: רק admin יכול להסיר מסניפים אחרים
             if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only remove products from your own branch (" + userBranchId + "). Only admin can remove from any branch");
             }
-            
-            // בדיקת תקינות כמות
             int quantity;
             try {
                 quantity = Integer.parseInt(parts[2]);
@@ -365,22 +307,15 @@ public class ClientHandler implements Runnable {
                 throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
             }
             
-            controller.removeFromInventory(
-                    parts[1],  // productId
-                    quantity,
-                    requestedBranchId
-            );
+            controller.removeFromInventory(parts[1], quantity, requestedBranchId);
             
             return "OK;Product removed from inventory successfully";
         }
 
         case "DELETE_PRODUCT": {
-            // בדיקת פרמטרים
             if (parts.length < 2) {
                 throw new IllegalArgumentException("DELETE_PRODUCT requires: productId");
             }
-            
-            // רק admin יכול למחוק מוצר
             if (!PermissionChecker.canDeleteProduct(role)) {
                 throw new UnauthorizedException("Only admin can delete products");
             }
@@ -391,12 +326,9 @@ public class ClientHandler implements Runnable {
         }
 
         case "CALCULATE_PRICE": {
-            // בדיקת פרמטרים
             if (parts.length < 4) {
                 throw new IllegalArgumentException("CALCULATE_PRICE requires: productId;quantity;customerId");
             }
-            
-            // בדיקת תקינות כמות
             int quantity;
             try {
                 quantity = Integer.parseInt(parts[2]);
@@ -407,36 +339,21 @@ public class ClientHandler implements Runnable {
                 throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
             }
             
-            double finalPrice = controller.calculatePrice(
-                    parts[1],  // productId
-                    quantity,
-                    parts[3]   // customerId
-            );
+            double finalPrice = controller.calculatePrice(parts[1], quantity, parts[3]);
             
             return "OK;" + finalPrice;
         }
 
         case "SELL":
-            // בדיקת פרמטרים
             if (parts.length < 5) {
                 throw new IllegalArgumentException("SELL requires: productId;quantity;branchId;customerId");
             }
-            
-            // ADMIN ו-EMPLOYEE יכולים למכור
-            // EMPLOYEE יכול למכור רק בסניף שלו, ADMIN בכל סניף
-            
             String sellBranchId = parts[3];
-            
-            // בדיקה: רק admin יכול למכור מסניפים אחרים
             if (!PermissionChecker.canAccessBranch(role, userBranchId, sellBranchId)) {
                 throw new UnauthorizedException("You can only sell products from your own branch (" + userBranchId + "). Only admin can sell from any branch");
             }
-            
-            // Get employee number automatically from logged-in user
             String username = currentSession.getUsername();
             String sellEmployeeNumber = controller.getEmployeeNumberByUsername(username, role);
-            
-            // בדיקת תקינות כמות
             int sellQuantity;
             try {
                 sellQuantity = Integer.parseInt(parts[2]);
@@ -447,25 +364,16 @@ public class ClientHandler implements Runnable {
                 throw new InvalidQuantityException("Invalid quantity format: " + parts[2]);
             }
             
-            controller.sellProduct(
-                    parts[1],  // productId
-                    sellQuantity,
-                    sellBranchId,
-                    sellEmployeeNumber,
-                    parts[4]   // customerId
-            );
+            controller.sellProduct(parts[1], sellQuantity, sellBranchId, sellEmployeeNumber, parts[4]);
             
             return "OK;Sale completed successfully";
 
-        // ========== List Commands ==========
         case "GET_DISCOUNTS": {
-            // כל המשתמשים המחוברים יכולים לראות אחוזי הנחה
             Map<String, Double> discounts = controller.getAllDiscounts();
             StringBuilder discountsList = new StringBuilder("OK;");
             for (Map.Entry<String, Double> entry : discounts.entrySet()) {
                 discountsList.append(entry.getKey()).append(":").append(entry.getValue()).append(";");
             }
-            // הסרת נקודה-פסיק אחרון
             if (discountsList.length() > 3) {
                 discountsList.setLength(discountsList.length() - 1);
             }
@@ -473,7 +381,6 @@ public class ClientHandler implements Runnable {
         }
         
         case "SET_DISCOUNT": {
-            // כל המשתמשים המחוברים יכולים לעדכן אחוזי הנחה
             if (parts.length < 3) {
                 throw new IllegalArgumentException("SET_DISCOUNT requires: customerType;discountPercentage");
             }
@@ -489,7 +396,6 @@ public class ClientHandler implements Runnable {
         }
         
         case "LIST_CUSTOMERS": {
-            // כל המשתמשים המחוברים יכולים לראות לקוחות
             Map<String, Customer> customers = controller.getAllCustomersForDisplay();
             StringBuilder customersList = new StringBuilder("OK;");
             for (Customer c : customers.values()) {
@@ -508,21 +414,14 @@ public class ClientHandler implements Runnable {
         }
             
         case "LIST_PRODUCTS": {
-            // כל המשתמשים המחוברים יכולים לראות מוצרים
             Map<String, Product> products = controller.getAllProductsForDisplay();
             StringBuilder productsList = new StringBuilder("OK;");
-            
-            // קבלת branchId - אם ADMIN אז כל הסניפים, אחרת הסניף של המשתמש
             String listBranchId = PermissionChecker.canViewAllBranches(role) ? "ALL" : userBranchId;
-            
             for (Product p : products.values()) {
-                // אם admin, נציג את הסכום הכולל מכל הסניפים
                 int quantity = 0;
                 if (PermissionChecker.canViewAllBranches(role)) {
-                    // סכום מכל הסניפים - נשתמש ב-ALL כסימן שצריך לסכם הכל
                     quantity = controller.getInventoryQuantity(p.getProductId(), "ALL");
                 } else {
-                    // כמות בסניף של המשתמש
                     quantity = controller.getInventoryQuantity(p.getProductId(), userBranchId);
                 }
                 
@@ -536,24 +435,16 @@ public class ClientHandler implements Runnable {
         }
             
         case "LIST_PRODUCTS_BY_BRANCH": {
-            // בדיקת פרמטרים
             if (parts.length < 2) {
                 throw new IllegalArgumentException("LIST_PRODUCTS_BY_BRANCH requires: branchId");
             }
-            
             String requestedBranchId = parts[1];
-            
-            // בדיקה: EMPLOYEE יכול לראות רק את הסניף שלו
             if (!PermissionChecker.canAccessBranch(role, userBranchId, requestedBranchId)) {
                 throw new UnauthorizedException("You can only view products from your own branch (" + userBranchId + "). Only admin can view any branch");
             }
-            
-            // כל המשתמשים המחוברים יכולים לראות מוצרים
             Map<String, Product> products = controller.getAllProductsForDisplay();
             StringBuilder productsList = new StringBuilder("OK;");
-            
             for (Product p : products.values()) {
-                // כמות בסניף המבוקש
                 int quantity = controller.getInventoryQuantity(p.getProductId(), requestedBranchId);
                 
                 productsList.append(p.getProductId()).append(":")
@@ -565,19 +456,12 @@ public class ClientHandler implements Runnable {
             return productsList.toString();
         }
 
-        // ========== Report Commands ==========
         case "REPORT_SALES_BY_BRANCH": {
-            // בדיקת פרמטרים (branchId אופציונלי - אם לא מועבר, מחזיר את כל הסניפים)
             String branchId = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
-            
-            // אם עובד, יכול לראות רק את הסניף שלו
             if (!PermissionChecker.canViewAllBranches(role) && (branchId == null || !branchId.equals(userBranchId))) {
                 branchId = userBranchId;
             }
-            
             List<ReportEntry> report = controller.getSalesReportByBranch(branchId);
-            
-            // המרה ל-JSON (compact format)
             StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_BRANCH\",\"branchId\":\"" + 
                 escapeJson(branchId != null ? branchId : "ALL") + "\",\"entries\":[");
             for (int i = 0; i < report.size(); i++) {
@@ -594,12 +478,8 @@ public class ClientHandler implements Runnable {
         }
 
         case "REPORT_SALES_BY_PRODUCT": {
-            // בדיקת פרמטרים (productId אופציונלי)
             String productId = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
-            
             List<ReportEntry> report = controller.getSalesReportByProduct(productId);
-            
-            // המרה ל-JSON (compact format)
             StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_PRODUCT\",\"productId\":\"" + 
                 escapeJson(productId != null ? productId : "ALL") + "\",\"entries\":[");
             for (int i = 0; i < report.size(); i++) {
@@ -620,12 +500,8 @@ public class ClientHandler implements Runnable {
         }
 
         case "REPORT_SALES_BY_CATEGORY": {
-            // בדיקת פרמטרים (category אופציונלי)
             String category = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
-            
             List<ReportEntry> report = controller.getSalesReportByCategory(category);
-            
-            // המרה ל-JSON (compact format)
             StringBuilder json = new StringBuilder("{\"reportType\":\"SALES_BY_CATEGORY\",\"category\":\"" + 
                 escapeJson(category != null ? category : "ALL") + "\",\"entries\":[");
             for (int i = 0; i < report.size(); i++) {
@@ -642,18 +518,12 @@ public class ClientHandler implements Runnable {
         }
 
         case "REPORT_DAILY_SALES": {
-            // בדיקת פרמטרים: date;branchId (שניהם אופציונליים)
             String date = (parts.length > 1 && !parts[1].isEmpty()) ? parts[1] : null;
             String branchId = (parts.length > 2 && !parts[2].isEmpty()) ? parts[2] : null;
-            
-            // אם עובד, יכול לראות רק את הסניף שלו
             if (!PermissionChecker.canViewAllBranches(role) && (branchId == null || !branchId.equals(userBranchId))) {
                 branchId = userBranchId;
             }
-            
             List<ReportEntry> report = controller.getDailySalesReport(date, branchId);
-            
-            // המרה ל-JSON (compact format)
             StringBuilder json = new StringBuilder("{\"reportType\":\"DAILY_SALES\",\"date\":\"" + 
                 escapeJson(date != null ? date : "ALL") + "\",\"branchId\":\"" + 
                 escapeJson(branchId != null ? branchId : "ALL") + "\",\"entries\":[");
@@ -674,9 +544,7 @@ public class ClientHandler implements Runnable {
             return "OK;" + json.toString();
         }
 
-        // ========== Admin Commands - User Management ==========
         case "CREATE_USER":
-            // Check permission: admin can create for any branch, cashier only for their branch
             if (parts.length < 5) {
                 throw new IllegalArgumentException("CREATE_USER requires: username;password;role;branchId");
             }
@@ -684,7 +552,7 @@ public class ClientHandler implements Runnable {
             if (!PermissionChecker.canCreateUser(role, userBranchId, targetBranchId)) {
                 throw new UnauthorizedException("You do not have permission to create users for branch " + targetBranchId);
             }
-            controller.createUser(parts[1], parts[2], parts[3], targetBranchId); // username, password, role, branchId
+            controller.createUser(parts[1], parts[2], parts[3], targetBranchId);
             return "OK;User created successfully";
 
         case "UPDATE_USER":
@@ -744,14 +612,12 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 throw new IllegalArgumentException("DELETE_USER requires: username");
             }
-            // מניעת מחיקת המשתמש המחובר בעצמו
             if (parts[1].equals(currentSession.getUsername())) {
                 throw new IllegalArgumentException("Cannot delete your own user account while logged in");
             }
             controller.deleteUser(parts[1]);
             return "OK;User deleted successfully";
 
-        // ========== Admin and Cashier Commands - Employee Management ==========
         case "CREATE_EMPLOYEE":
             if (!PermissionChecker.canCreateEmployee(role)) {
                 throw new UnauthorizedException("Only admin and cashier can create employees");
@@ -856,13 +722,6 @@ public class ClientHandler implements Runnable {
             String message = parts[2];
             String sender = currentSession.getUsername();
             controller.sendChatMessage(chatId, sender, message);
-            
-            // שליחת הודעה לכל המשתתפים בצ'אט
-            model.ChatSession chat = controller.getUserChat(sender);
-            if (chat != null && chat.getChatId().equals(chatId)) {
-                // ההודעה נשלחת דרך השרת לכל המשתתפים
-                // זה יטופל ב-GUI דרך polling או push notifications
-            }
             return "OK;Message sent";
         }
 
@@ -891,22 +750,10 @@ public class ClientHandler implements Runnable {
             String endChatUsername = currentSession.getUsername();
             String branchId = currentSession.getBranchId();
             controller.endChat(chatId);
-            
-            // מציאת הסניף השני (יש רק שני סניפים)
-            String otherBranchId = null;
-            Map<String, model.Session> allSessions = controller.getSessionManager().getAllActiveSessions();
-            for (model.Session session : allSessions.values()) {
-                if (!session.getBranchId().equals(branchId)) {
-                    otherBranchId = session.getBranchId();
-                    break;
-                }
-            }
-            
-            // בדיקה אם יש בקשות ממתינות לסניף השני
+            String otherBranchId = findOtherBranchId(branchId);
             if (otherBranchId != null) {
                 List<model.ChatRequest> waitingRequests = controller.getWaitingRequestsForBranch(otherBranchId);
                 if (!waitingRequests.isEmpty()) {
-                    // יש בקשות ממתינות - נשלח התראה
                     StringBuilder notification = new StringBuilder("OK;Chat ended;WAITING:");
                     for (int i = 0; i < waitingRequests.size(); i++) {
                         model.ChatRequest req = waitingRequests.get(i);
@@ -924,7 +771,6 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 throw new IllegalArgumentException("JOIN_CHAT requires: chatId");
             }
-            // Check permission: only admin and manager can join existing chats
             if (!PermissionChecker.canJoinChat(role)) {
                 throw new UnauthorizedException("Only admin and manager can join existing chats");
             }
@@ -934,25 +780,11 @@ public class ClientHandler implements Runnable {
             return "OK;User joined chat";
         }
 
-        case "GET_AVAILABLE_USERS": {
-            // @deprecated - לא בשימוש יותר, הוסר
-            return "ERROR;This command is deprecated and no longer supported";
-        }
-
         case "GET_WAITING_REQUESTS": {
             String branchId = currentSession.getBranchId();
-            // מציאת הסניף השני (יש רק שני סניפים)
-            String otherBranchId = null;
-            Map<String, model.Session> allSessions = controller.getSessionManager().getAllActiveSessions();
-            for (model.Session session : allSessions.values()) {
-                if (!session.getBranchId().equals(branchId)) {
-                    otherBranchId = session.getBranchId();
-                    break;
-                }
-            }
-            
+            String otherBranchId = findOtherBranchId(branchId);
             if (otherBranchId == null) {
-                return "OK;"; // אין סניף שני
+                return "OK;";
             }
             
             List<model.ChatRequest> waitingRequests = controller.getWaitingRequestsForBranch(otherBranchId);
@@ -1064,14 +896,61 @@ public class ClientHandler implements Runnable {
             }
         }
 
+        case "BROADCAST": {
+            if (parts.length < 2) {
+                throw new IllegalArgumentException("BROADCAST requires: message");
+            }
+            String message = parts[1];
+            broadcastMessage(message, socket);
+            return "OK;Message broadcasted to all clients";
+        }
+
         default:
             throw new IllegalArgumentException("Unknown command: " + parts[0]);
     }
     }
     
     /**
-     * Escaping JSON strings
+     * Broadcasts a message to all connected clients except the sender.
+     * Iterates through the Vector<Socket> and sends the message to each client.
+     * Removes failed sockets from the Vector if IOException occurs.
+     * 
+     * @param message the message to broadcast
+     * @param senderSocket the socket of the client sending the message (excluded from broadcast)
      */
+    private void broadcastMessage(String message, Socket senderSocket) {
+        synchronized (connectedClients) {
+            // Use iterator to safely remove elements during iteration
+            for (int i = connectedClients.size() - 1; i >= 0; i--) {
+                Socket clientSocket = connectedClients.get(i);
+                
+                // Skip sender and closed sockets
+                if (clientSocket == senderSocket || clientSocket.isClosed()) {
+                    continue;
+                }
+                
+                try {
+                    PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                    out.println("BROADCAST;" + message);
+                } catch (IOException e) {
+                    // Remove failed socket from Vector
+                    connectedClients.remove(i);
+                    System.err.println("Removed failed socket from broadcast: " + e.getMessage());
+                }
+            }
+        }
+    }
+    
+    private String findOtherBranchId(String currentBranchId) {
+        Map<String, model.Session> allSessions = controller.getSessionManager().getAllActiveSessions();
+        for (model.Session session : allSessions.values()) {
+            if (!session.getBranchId().equals(currentBranchId)) {
+                return session.getBranchId();
+            }
+        }
+        return null;
+    }
+    
     private String escapeJson(String str) {
         if (str == null) return "";
         return str.replace("\\", "\\\\")

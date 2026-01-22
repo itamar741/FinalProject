@@ -17,12 +17,7 @@ public class Session {
     private long loginTime;
 
     /**
-     * Constructs a new Session for a logged-in user.
-     * 
-     * @param username the username of the logged-in user
-     * @param branchId the branch ID where the user works
-     * @param role the user's role (admin, manager, salesman, cashier)
-     * @param socket the socket connection for this session
+     * Constructs a new Session for a logged-in user
      */
     public Session(String username, 
                    String branchId, 
@@ -35,57 +30,28 @@ public class Session {
         this.loginTime = System.currentTimeMillis();
     }
 
-    /**
-     * Gets the username for this session.
-     * 
-     * @return the username
-     */
+  
     public String getUsername() {
         return username;
     }
 
-    /**
-     * Gets the branch ID for this session.
-     * 
-     * @return the branch ID
-     */
     public String getBranchId() {
         return branchId;
     }
 
-    /**
-     * Gets the user's role for this session.
-     * 
-     * @return the role (admin, manager, salesman, cashier)
-     */
+
     public String getRole() {
         return role;
     }
 
-    /**
-     * Gets the socket connection for this session.
-     * 
-     * @return the socket
-     */
     public Socket getSocket() {
         return socket;
     }
 
-    /**
-     * Gets the login time as a timestamp (milliseconds since epoch).
-     * 
-     * @return the login time
-     */
     public long getLoginTime() {
         return loginTime;
     }
 
-    /**
-     * Checks if this session belongs to the specified username.
-     * 
-     * @param username the username to check
-     * @return true if this session belongs to the username, false otherwise
-     */
     public boolean isSameUser(String username) {
         return this.username.equals(username);
     }

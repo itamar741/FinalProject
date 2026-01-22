@@ -3,8 +3,7 @@ package model;
 /**
  * Represents a product in the system.
  * Products are identified by their productId, which is used for equality comparison.
- * 
- * @author FinalProject
+
  */
 public class Product {
     private String productId;
@@ -12,14 +11,6 @@ public class Product {
     private String category;
     private double price;
 
-    /**
-     * Constructs a new Product with the specified details.
-     * 
-     * @param productId the unique product identifier
-     * @param name the product name
-     * @param category the product category
-     * @param price the product price
-     */
     public Product(String productId, String name, String category, double price) {
         this.productId = productId;
         this.name = name;
@@ -27,74 +18,40 @@ public class Product {
         this.price = price;
     }
     
-    /**
-     * Gets the product's unique identifier.
-     * 
-     * @return the product ID
-     */
+   
     public String getProductId() {
         return productId;
     }
 
-    /**
-     * Gets the product name.
-     * 
-     * @return the product name
-     */
+   
     public String getName() {
         return name;
     }
 
-    /**
-     * Gets the product price.
-     * 
-     * @return the price
-     */
     public double getPrice() {
         return price;
     }
 
-    /**
-     * Gets the product category.
-     * 
-     * @return the category
-     */
+   
     public String getCategory() {
         return category;
     }
-    
-    /**
-     * Sets the product price.
-     * 
-     * @param price the new price
-     */
+   
     public void setPrice(double price) {
         this.price = price;
     }
     
-    /**
-     * Sets the product category.
-     * 
-     * @param category the new category
-     */
+   
     public void setCategory(String category) {
         this.category = category;
     }   
     
-    /**
-     * Sets the product ID.
-     * 
-     * @param productId the new product ID
-     */
+    
     public void setProductId(String productId) {
         this.productId = productId;
     }
     
-    /**
-     * Sets the product name.
-     * 
-     * @param name the new name
-     */
+    
     public void setName(String name) {
         this.name = name;
     }
@@ -102,9 +59,6 @@ public class Product {
     /**
      * Compares this product with another object for equality.
      * Two products are equal if they have the same productId.
-     * 
-     * @param o the object to compare with
-     * @return true if equal, false otherwise
      */
     @Override
     public boolean equals(Object o) {
@@ -118,8 +72,6 @@ public class Product {
     /**
      * Returns the hash code for this product.
      * Hash code is based on productId.
-     * 
-     * @return the hash code
      */
     @Override
     public int hashCode() {

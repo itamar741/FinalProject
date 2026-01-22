@@ -8,6 +8,8 @@ import gui.dialogs.UpdateCustomerDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
@@ -78,7 +80,7 @@ class CustomersManagementTab extends JPanel {
     private JButton addButton;
     private JButton updateButton;
     private JButton deleteButton;
-    private JButton refreshButton;
+    private Timer refreshTimer;
     
     /**
      * Constructs a new CustomersManagementTab.
@@ -93,6 +95,16 @@ class CustomersManagementTab extends JPanel {
         setLayout(new BorderLayout());
         createUI();
         refresh();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refresh());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -115,10 +127,6 @@ class CustomersManagementTab extends JPanel {
         deleteButton = new JButton("מחק");
         deleteButton.addActionListener(e -> deleteSelectedCustomer());
         buttonPanel.add(deleteButton);
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        buttonPanel.add(refreshButton);
         
         add(buttonPanel, BorderLayout.NORTH);
         
@@ -310,7 +318,7 @@ class DiscountSettingsTab extends JPanel {
     private JTextField returningCustomerDiscountField;
     private JTextField vipCustomerDiscountField;
     private JButton saveButton;
-    private JButton refreshButton;
+    private Timer refreshTimer;
     
     /**
      * Constructs a new DiscountSettingsTab.
@@ -325,6 +333,16 @@ class DiscountSettingsTab extends JPanel {
         setLayout(new BorderLayout());
         createUI();
         refresh();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refresh());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -384,10 +402,6 @@ class DiscountSettingsTab extends JPanel {
         saveButton = new JButton("שמור שינויים");
         saveButton.addActionListener(e -> saveDiscounts());
         buttonPanel.add(saveButton);
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        buttonPanel.add(refreshButton);
         
         add(buttonPanel, BorderLayout.SOUTH);
     }

@@ -6,6 +6,8 @@ import model.LogEntry;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -27,8 +29,8 @@ public class LogsTab extends JPanel {
     private JList<String> logsList;
     private DefaultListModel<String> logsModel;
     private JComboBox<String> filterComboBox;
-    private JButton refreshButton;
     private JButton saveChatButton;
+    private Timer refreshTimer;
     
     private List<LogEntry> allLogs;
     private List<LogEntry> filteredLogs;
@@ -49,6 +51,16 @@ public class LogsTab extends JPanel {
         setLayout(new BorderLayout());
         createUI();
         refresh();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refresh());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -59,16 +71,12 @@ public class LogsTab extends JPanel {
         filterComboBox = new JComboBox<>(new String[]{"הכל", "רישום עובדים", "רישום לקוחות", "קניות/מכירות", "פרטי שיחות"});
         filterComboBox.addActionListener(e -> filterLogs());
         
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        
         saveChatButton = new JButton("שמור שיחה");
         saveChatButton.addActionListener(e -> saveChat());
         saveChatButton.setEnabled(false);
         
         topPanel.add(filterLabel);
         topPanel.add(filterComboBox);
-        topPanel.add(refreshButton);
         topPanel.add(saveChatButton);
         
         // רשימת לוגים

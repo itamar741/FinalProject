@@ -7,8 +7,6 @@ import java.util.Set;
  * Represents an active chat session between users.
  * Tracks participants, start time, and session status.
  * Managers can join existing chats as additional participants.
- * 
- * @author FinalProject
  */
 public class ChatSession {
     private String chatId;
@@ -27,9 +25,9 @@ public class ChatSession {
     /**
      * Constructs a new ChatSession between two users.
      * 
-     * @param chatId the unique chat identifier
-     * @param user1 the first participant's username
-     * @param user2 the second participant's username
+     * chatId the unique chat identifier
+     *  user1 the first participant's username
+     *  user2 the second participant's username
      */
     public ChatSession(String chatId, String user1, String user2) {
         this.chatId = chatId;

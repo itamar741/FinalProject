@@ -132,31 +132,6 @@ public class AuthenticationManager {
         // - At least one digit
         // - At least one special character
     }
-    
-    /**
-     * Changes a user's password.
-     * Validates old password and new password strength.
-     * 
-     * @param username the username
-     * @param oldPassword the current password
-     * @param newPassword the new password (must meet password policy)
-     * @throws InvalidCredentialsException if username not found or old password is incorrect
-     * @throws WeakPasswordException if new password does not meet requirements
-     */
-    public void changePassword(String username, String oldPassword, String newPassword)
-            throws InvalidCredentialsException, WeakPasswordException {
-        
-        synchronized (users) {
-            User user = users.get(username);
-            if (user == null || !user.checkPassword(oldPassword)) {
-                throw new InvalidCredentialsException("Invalid credentials");
-            }
-            
-            validatePassword(newPassword);
-            user.setPassword(newPassword);
-        }
-    }
-    
     /**
      * Gets a user by username.
      * 

@@ -4,11 +4,13 @@ import controller.SystemController;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Vector;
 
 /**
  * Main server class for the clothing store network management system.
  * Implements Thread-per-Client architecture - each client connection gets its own thread.
  * Listens on port 5000 and creates a new ClientHandler thread for each incoming connection.
+ * Maintains a Vector<Socket> to track all connected clients for Broadcast functionality.
  * 
  * @author FinalProject
  */
@@ -16,11 +18,15 @@ public class ServerMain {
 
     /** The port number the server listens on */
     private static final int PORT = 5000;
+    
+    /** Vector to store all connected client sockets (thread-safe) */
+    private static Vector<Socket> connectedClients = new Vector<>();
 
     /**
      * Main entry point for the server.
      * Creates a SystemController, starts listening on port 5000,
      * and creates a new thread for each client connection.
+     * Each client socket is added to the Vector<Socket> for Broadcast support.
      * 
      * @param args command line arguments (not used)
      */
@@ -34,7 +40,12 @@ public class ServerMain {
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(clientSocket, controller);
+                
+                // Add socket to Vector (thread-safe)
+                connectedClients.add(clientSocket);
+                
+                // Create handler and start thread
+                ClientHandler handler = new ClientHandler(clientSocket, controller, connectedClients);
                 new Thread(handler).start();
             }
 

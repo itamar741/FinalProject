@@ -8,6 +8,8 @@ import gui.dialogs.UpdateUserDialog;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.IOException;
 
 /**
@@ -28,7 +30,7 @@ public class UsersManagementTab extends JPanel {
     private JButton updateButton;
     private JButton activateButton;
     private JButton deleteButton;
-    private JButton refreshButton;
+    private Timer refreshTimer;
     
     /**
      * Constructs a new UsersManagementTab (admin only).
@@ -43,6 +45,16 @@ public class UsersManagementTab extends JPanel {
         setLayout(new BorderLayout());
         createUI();
         refresh();
+        startAutoRefresh();
+    }
+    
+    /**
+     * Starts auto-refresh timer to keep UI updated.
+     */
+    private void startAutoRefresh() {
+        // רענון אוטומטי כל 1000ms (שנייה אחת)
+        refreshTimer = new Timer(1000, e -> refresh());
+        refreshTimer.start();
     }
     
     private void createUI() {
@@ -69,10 +81,6 @@ public class UsersManagementTab extends JPanel {
         deleteButton = new JButton("מחק משתמש");
         deleteButton.addActionListener(e -> deleteUser());
         buttonPanel.add(deleteButton);
-        
-        refreshButton = new JButton("רענן");
-        refreshButton.addActionListener(e -> refresh());
-        buttonPanel.add(refreshButton);
         
         add(buttonPanel, BorderLayout.NORTH);
         

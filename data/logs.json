@@ -903,5 +903,40 @@
     "actionType": "LOGIN",
     "description": "User admin (admin) logged in from /127.0.0.1:65483",
     "dateTime": "2026-01-21T18:37:03.293823700"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-21T19:07:35.661800100"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:55771",
+    "dateTime": "2026-01-22T11:15:26.994192800"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T12:11:28.516151600"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:63528",
+    "dateTime": "2026-01-22T12:51:50.659928300"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T12:51:56.312181700"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /127.0.0.1:60919",
+    "dateTime": "2026-01-22T14:06:10.414458300"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T14:06:15.934910900"
   }
 ]

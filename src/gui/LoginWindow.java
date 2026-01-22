@@ -11,7 +11,6 @@ public class LoginWindow extends JFrame {
     
     private JTextField usernameField;
     private JPasswordField passwordField;
-    private JTextField serverHostField;
     private JButton loginButton;
     private ClientConnection connection;
     private boolean loginSuccessful = false;  // האם ההתחברות הצליחה וה-MainWindow נפתח
@@ -19,11 +18,11 @@ public class LoginWindow extends JFrame {
     public LoginWindow() {
         setTitle("התחברות למערכת");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(400, 250);
+        setSize(400, 200);
         setLocationRelativeTo(null);
         setResizable(false);
         
-        // יצירת UI (connection ייווצר אחרי הזנת כתובת השרת)
+        // יצירת UI
         createUI();
     }
     
@@ -38,23 +37,9 @@ public class LoginWindow extends JFrame {
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(5, 5, 5, 5);
         
-        // כתובת שרת
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.EAST;
-        mainPanel.add(new JLabel("כתובת שרת:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        serverHostField = new JTextField(15);
-        serverHostField.setText("localhost");
-        serverHostField.setToolTipText("הזן כתובת IP של השרת (לדוגמה: 192.168.1.100) או localhost למחשב מקומי");
-        mainPanel.add(serverHostField, gbc);
-        
         // שם משתמש
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST;
@@ -68,7 +53,7 @@ public class LoginWindow extends JFrame {
         
         // סיסמה
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 1;
         gbc.fill = GridBagConstraints.NONE;
         gbc.weightx = 0;
         gbc.anchor = GridBagConstraints.EAST;
@@ -83,7 +68,7 @@ public class LoginWindow extends JFrame {
         
         // כפתור התחבר
         gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 2;
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.CENTER;
@@ -100,13 +85,13 @@ public class LoginWindow extends JFrame {
     /**
      * Performs login attempt.
      * Validates input, sends login command to server, and handles response.
+     * Server address is read from client.config file or uses default.
      */
     private void performLogin() {
-        String serverHost = serverHostField.getText().trim();
         String username = usernameField.getText().trim();
         String password = new String(passwordField.getPassword());
         
-        if (serverHost.isEmpty() || username.isEmpty() || password.isEmpty()) {
+        if (username.isEmpty() || password.isEmpty()) {
             JOptionPane.showMessageDialog(this,
                     "אנא מלא את כל השדות",
                     "שגיאה",
@@ -119,13 +104,13 @@ public class LoginWindow extends JFrame {
         loginButton.setText("מתחבר...");
         
         try {
-            // יצירת connection עם כתובת השרת
-            connection = new ClientConnection(serverHost);
+            // יצירת connection (קורא את כתובת השרת מקובץ תצורה או משתמש בברירת מחדל)
+            connection = new ClientConnection();
             
             // ניסיון התחברות לשרת
             if (!connection.connect()) {
                 JOptionPane.showMessageDialog(this,
-                        "לא ניתן להתחבר לשרת.\nאנא וודא שהשרת פועל בכתובת: " + serverHost,
+                        "לא ניתן להתחבר לשרת.\nאנא וודא שהשרת פועל ושה-client.config מכיל את כתובת השרת הנכונה.",
                         "שגיאת חיבור",
                         JOptionPane.ERROR_MESSAGE);
                 loginButton.setEnabled(true);

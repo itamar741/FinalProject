@@ -12,7 +12,6 @@ import model.User;
 import model.Employee;
 import model.Inventory;
 import model.ReportEntry;
-import model.Product;
 import model.ChatMessage;
 import model.ChatSession;
 import model.ChatUserStatus;
@@ -84,7 +83,7 @@ public class SystemController {
         try {
             loadUsers();
             loadEmployees();
-            rebuildUsernameMappings();  // Rebuild username->employeeNumber mappings from existing data
+            rebuildUsernameMappings(); 
             loadCustomers();
             loadProducts();
             loadBranches();
@@ -94,13 +93,11 @@ public class SystemController {
             loadDiscounts();
         } catch (IOException e) {
             System.err.println("Error loading data: " + e.getMessage());
-            // ממשיכים עם נתונים ריקים
         }
     }
     
     /**
      * Rebuilds username to employee number mappings from existing employees and users.
-     * This is needed when loading data from storage, as the mapping isn't persisted separately.
      * Attempts to match users to employees by finding employees with matching role and branch.
      */
     private void rebuildUsernameMappings() {
@@ -154,7 +151,6 @@ public class SystemController {
     private void loadUsers() throws IOException {
         Map<String, UserData> usersData = storageManager.loadUsers();
         for (UserData userData : usersData.values()) {
-            // לא טוען משתמשי אדמין ברירת מחדל (admin, superadmin) אם הם כבר קיימים
             if (!authenticationManager.userExists(userData.username)) {
                 User user = userData.toUser();
                 authenticationManager.addUserDirectly(user);
@@ -172,9 +168,7 @@ public class SystemController {
                     empData.role, empData.branchId
                 );
             } catch (DuplicateEmployeeException e) {
-                // כבר קיים, מדלג
             } catch (InvalidIdNumberException | InvalidPhoneException e) {
-                // נתונים לא תקינים מהקובץ - מדלג על העובד הזה
                 System.err.println("Skipping employee with invalid data: " + empData.employeeNumber + " - " + e.getMessage());
             }
         }
@@ -189,7 +183,6 @@ public class SystemController {
                     custData.phone, custData.customerType
                 );
             } catch (DuplicateCustomerException e) {
-                // כבר קיים, מדלג
             }
         }
     }
@@ -211,7 +204,7 @@ public class SystemController {
     
     private void loadInventory() throws IOException {
         Map<String, Map<String, Integer>> inventoryData = storageManager.loadInventory();
-        Map<String, Product> productsMap = productManager.getAllProducts(); // צריך להוסיף method זה
+        Map<String, Product> productsMap = productManager.getAllProducts();
         
         for (Map.Entry<String, Map<String, Integer>> branchEntry : inventoryData.entrySet()) {
             String branchId = branchEntry.getKey();
@@ -507,17 +500,9 @@ public class SystemController {
                            int quantity,
                            String branchId)
             throws InvalidQuantityException {
-        
-        // 1. יצירת/שליפת מוצר
         Product product = productManager.getProduct(productId, name, category, price);
-        
-        // 2. שליפת הסניף
         Branch branch = branchManager.getBranch(branchId);
-        
-        // 3. הוספה למלאי
         inventoryManager.addProduct(branch, product, quantity);
-        
-        // 4. רישום לוג
         LogEntry entry = new LogEntry(
                 "ADD_PRODUCT",
                 "Product " + productId + " (" + name + ") added to inventory of branch " + branchId +
@@ -549,19 +534,9 @@ public class SystemController {
                                       String branchId)
             throws InvalidQuantityException {
 
-        // 1. שליפת מוצר קיים מהקטלוג
         Product product = productManager.getExistingProduct(productId);
-
-        // הנחה לפי הדרישות: המוצר קיים בקטלוג
-        // אם לא – תתקבל שגיאת ריצה (או חריגה אם תחליטו להוסיף)
-
-        // 2. שליפת הסניף
         Branch branch = branchManager.getBranch(branchId);
-
-        // 3. הוספה למלאי
         inventoryManager.addProduct(branch, product, quantity);
-
-        // 4. רישום לוג
         LogEntry entry = new LogEntry(
                 "ADD_PRODUCT_TO_INVENTORY",
                 "Product " + productId +
@@ -592,17 +567,9 @@ public class SystemController {
                                     int quantity,
                                     String branchId)
             throws InvalidQuantityException, InsufficientStockException {
-        
-        // 1. שליפת מוצר קיים
         Product product = productManager.getExistingProduct(productId);
-        
-        // 2. שליפת הסניף
         Branch branch = branchManager.getBranch(branchId);
-        
-        // 3. הסרה מהמלאי
         inventoryManager.removeProduct(branch, product, quantity);
-        
-        // 4. רישום לוג
         LogEntry entry = new LogEntry(
                 "REMOVE_FROM_INVENTORY",
                 "Product " + productId +
@@ -628,13 +595,10 @@ public class SystemController {
      * @throws IllegalArgumentException if product not found
      */
     public void deleteProduct(String productId) {
-        // 1. בדיקה שהמוצר קיים
         Product product = productManager.getExistingProduct(productId);
         if (product == null) {
             throw new IllegalArgumentException("Product not found: " + productId);
         }
-        
-        // 2. הסרת המוצר מכל הסניפים (הסרה מהמלאי)
         Map<String, Branch> branches = branchManager.getAllBranches();
         for (Branch branch : branches.values()) {
             Inventory inventory = branch.getInventory();
@@ -643,16 +607,11 @@ public class SystemController {
                 try {
                     inventoryManager.removeProduct(branch, product, quantity);
                 } catch (Exception e) {
-                    // אם יש שגיאה, נמשיך עם הסניפים האחרים
                     System.err.println("Error removing product from branch " + branch.getBranchId() + ": " + e.getMessage());
                 }
             }
         }
-        
-        // 3. הסרת המוצר מהמנהל
         productManager.deleteProduct(productId);
-        
-        // 4. רישום לוג
         LogEntry entry = new LogEntry(
                 "DELETE_PRODUCT",
                 "Product " + productId + " deleted from system",
@@ -689,39 +648,15 @@ public class SystemController {
                             String customerId)
             throws InvalidQuantityException,
             InsufficientStockException {
-
-        // 1. שליפת מוצר קיים מהקטלוג
         Product product = productManager.getExistingProduct(productId);
-
-        // 2. שליפת סניף
         Branch branch = branchManager.getBranch(branchId);
-
-        // 3. שליפת לקוח
         Customer customer = customerManager.getCustomerById(customerId);
-
-        // 4. מכירה מהמלאי (בדיקות קורות כאן)
         inventoryManager.sellProduct(branch, product, quantity);
-
-        // 5. חישוב מחיר לפי סוג הלקוח (פולימורפיזם)
         double basePrice = product.getPrice() * quantity;
         double finalPrice = customer.calculatePrice(basePrice);
-
-        // 6. יצירת מכירה
         String dateTime = LocalDateTime.now().toString();
-        Sale sale = new Sale(
-                product,
-                quantity,
-                branchId,
-                employeeNumber,
-                customerId,
-                dateTime,
-                basePrice,
-                finalPrice
-        );
-
+        Sale sale = new Sale(product, quantity, branchId, employeeNumber, customerId, dateTime, basePrice, finalPrice);
         salesManager.addSale(sale);
-
-        // 7. לוג
         String customerType = customer.getCustomerType();
         LogEntry entry = new LogEntry(
                 "SALE",
@@ -768,10 +703,7 @@ public class SystemController {
             throw new IllegalArgumentException("Customer not found: " + customerId);
         }
         
-        // חישוב מחיר בסיסי
         double basePrice = product.getPrice() * quantity;
-        
-        // חישוב מחיר סופי לפי סוג הלקוח
         double finalPrice = customer.calculatePrice(basePrice);
         
         return finalPrice;
@@ -796,8 +728,6 @@ public class SystemController {
                           String role,
                           String branchId)
             throws WeakPasswordException, DuplicateUserException {
-        
-        // בדיקה אם המשתמש כבר קיים
         if (authenticationManager.userExists(username)) {
             throw new DuplicateUserException("User with username " + username + " already exists");
         }
@@ -839,19 +769,12 @@ public class SystemController {
         if (user == null) {
             throw new UserNotFoundException("User " + username + " not found");
         }
-        
-        // עדכון סיסמה אם הועברה
         if (newPassword != null && !newPassword.trim().isEmpty()) {
-            // שינוי סיסמה - צריך את הסיסמה הישנה, אבל כאן זו פעולת אדמין אז נשנה ישירות
             user.setPassword(newPassword);
         }
-        
-        // עדכון branchId אם הועבר
         if (newBranchId != null && !newBranchId.trim().isEmpty()) {
             user.setBranchId(newBranchId);
         }
-        
-        // עדכון active אם הועבר
         if (active != null) {
             user.setActive(active);
         }
@@ -887,8 +810,6 @@ public class SystemController {
         }
         
         authenticationManager.setUserActive(username, active);
-        
-        // אם המשתמש מחובר, יש לנתק אותו
         if (!active) {
             Session session = sessionManager.getSessionByUsername(username);
             if (session != null) {
@@ -947,8 +868,6 @@ public class SystemController {
         if (user == null) {
             throw new UserNotFoundException("User " + username + " not found");
         }
-        
-        // אם המשתמש מחובר, יש לנתק אותו קודם
         Session session = sessionManager.getSessionByUsername(username);
         if (session != null) {
             sessionManager.removeSession(session.getSocket());
@@ -1054,7 +973,7 @@ public class SystemController {
                               String bankAccount,
                               String role,
                               String branchId)
-            throws EmployeeNotFoundException, InvalidPhoneException {
+            throws EmployeeNotFoundException, InvalidPhoneException, DuplicateEmployeeException {
         
         employeeManager.updateEmployee(employeeNumber, fullName, phone, bankAccount, role, branchId);
         
@@ -1164,7 +1083,6 @@ public class SystemController {
         }
         
         if (branchId.equals("ALL")) {
-            // סכום מכל הסניפים
             int total = 0;
             Map<String, Branch> branches = branchManager.getAllBranches();
             for (Branch branch : branches.values()) {
@@ -1173,7 +1091,6 @@ public class SystemController {
             }
             return total;
         } else {
-            // כמות בסניף ספציפי
             Branch branch = branchManager.getBranch(branchId);
             if (branch == null) {
                 return 0;
@@ -1197,7 +1114,6 @@ public class SystemController {
         Map<String, ReportEntry> summary = new HashMap<>();
         
         for (Sale sale : allSales) {
-            // אם branchId לא null, סינון לפי סניף
             if (branchId != null && !branchId.isEmpty() && !branchId.equals("ALL")) {
                 if (!sale.getBranchId().equals(branchId)) {
                     continue;
@@ -1209,44 +1125,25 @@ public class SystemController {
             
             if (summary.containsKey(key)) {
                 ReportEntry entry = summary.get(key);
-                // עדכון הסיכום - הוספת כמות ו-revenue
-                // אבל ReportEntry לא מאפשר עדכון, אז נצטרך ליצור מחדש
                 summary.put(key, new ReportEntry(
                     entry.getBranchId(),
-                    "",  // לא רלוונטי בדוח לפי סניף
-                    "",  // לא רלוונטי
-                    "",  // לא רלוונטי
+                    "",
+                    "",
+                    "",
                     entry.getQuantity() + sale.getQuantity(),
                     entry.getTotalRevenue() + sale.getFinalPrice(),
                     entry.getDate()
                 ));
             } else {
-                summary.put(key, new ReportEntry(
-                    sale.getBranchId(),
-                    "",
-                    "",
-                    "",
-                    sale.getQuantity(),
-                    sale.getFinalPrice(),
-                    ""
-                ));
+                summary.put(key, new ReportEntry(sale.getBranchId(), "", "", "", sale.getQuantity(), sale.getFinalPrice(), ""));
             }
         }
-        
         return new ArrayList<>(summary.values());
     }
     
-    /**
-     * Generates a sales report by product.
-     * Returns a list of ReportEntry objects for all sales of the specified product.
-     * 
-     * @param productId the product ID to filter by, or null/empty for all products
-     * @return a list of ReportEntry objects
-     */
     public List<ReportEntry> getSalesReportByProduct(String productId) {
         List<Sale> allSales = salesManager.getSales();
         List<ReportEntry> result = new ArrayList<>();
-        
         for (Sale sale : allSales) {
             if (productId == null || productId.isEmpty() || sale.getProduct().getProductId().equals(productId)) {
                 result.add(new ReportEntry(
@@ -1256,7 +1153,7 @@ public class SystemController {
                     sale.getProduct().getCategory(),
                     sale.getQuantity(),
                     sale.getFinalPrice(),
-                    sale.getDateTime().split("T")[0]  // רק תאריך, לא זמן
+                    sale.getDateTime().split("T")[0]
                 ));
             }
         }
@@ -1277,8 +1174,6 @@ public class SystemController {
         
         for (Sale sale : allSales) {
             String saleCategory = sale.getProduct().getCategory();
-            
-            // אם category לא null, סינון לפי קטגוריה
             if (category != null && !category.isEmpty()) {
                 if (!saleCategory.equals(category)) {
                     continue;
@@ -1327,16 +1222,12 @@ public class SystemController {
         List<ReportEntry> result = new ArrayList<>();
         
         for (Sale sale : allSales) {
-            String saleDate = sale.getDateTime().split("T")[0];  // רק תאריך
-            
-            // סינון לפי תאריך
+            String saleDate = sale.getDateTime().split("T")[0];
             if (date != null && !date.isEmpty()) {
                 if (!saleDate.equals(date)) {
                     continue;
                 }
             }
-            
-            // סינון לפי סניף
             if (branchId != null && !branchId.isEmpty() && !branchId.equals("ALL")) {
                 if (!sale.getBranchId().equals(branchId)) {
                     continue;
@@ -1369,17 +1260,13 @@ public class SystemController {
      */
     public String requestChat(String username, String branchId) {
         String result = chatManager.requestChat(username, branchId);
-        
-        // לוג
         LogEntry entry = new LogEntry(
             "CHAT_REQUESTED",
             "User " + username + " requested chat from branch " + branchId,
             LocalDateTime.now().toString(),
-            null // אין chatId עדיין
+            null
         );
         logManager.addLog(entry);
-        
-        // אם נמצאה התאמה - לוג נוסף
         if (result != null && result.startsWith("OK;MATCHED")) {
             String[] parts = result.split(";");
             if (parts.length > 2) {
@@ -1412,8 +1299,6 @@ public class SystemController {
      */
     public void sendChatMessage(String chatId, String sender, String message) {
         chatManager.addMessage(chatId, sender, message);
-        
-        // לוג
         LogEntry entry = new LogEntry(
             "CHAT_MESSAGE",
             "Chat " + chatId + ": " + sender + " sent: " + message,
@@ -1435,8 +1320,6 @@ public class SystemController {
      */
     public void endChat(String chatId) {
         chatManager.endChat(chatId);
-        
-        // לוג
         LogEntry entry = new LogEntry(
             "CHAT_ENDED",
             "Chat " + chatId + " ended",
@@ -1460,8 +1343,6 @@ public class SystemController {
      */
     public void joinChatAsManager(String chatId, String managerUsername) {
         chatManager.joinChatAsManager(chatId, managerUsername);
-        
-        // לוג
         LogEntry entry = new LogEntry(
             "MANAGER_JOINED",
             "Manager " + managerUsername + " joined chat " + chatId,
@@ -1476,9 +1357,6 @@ public class SystemController {
         }
     }
     
-    /**
-     * קבלת רשימת בקשות ממתינות לסניף מסוים
-     */
     /**
      * Gets waiting chat requests for a specific branch.
      * Used to notify available employees about pending requests from other branches.
@@ -1500,8 +1378,6 @@ public class SystemController {
      */
     public String acceptChatRequest(String acceptingUsername, String requestId) {
         String result = chatManager.acceptChatRequest(acceptingUsername, requestId);
-        
-        // לוג
         if (result != null && result.startsWith("OK;")) {
             String chatId = null;
             if (result.contains(";") && result.split(";").length > 2) {
@@ -1527,37 +1403,22 @@ public class SystemController {
         return result;
     }
     
-    /**
-     * היסטוריית צ'אט
-     */
     public List<model.ChatMessage> getChatHistory(String chatId) {
         return chatManager.getChatHistory(chatId);
     }
     
-    /**
-     * קבלת צ'אט של משתמש
-     */
     public model.ChatSession getUserChat(String username) {
         return chatManager.getUserChat(username);
     }
     
-    /**
-     * ביטול בקשה לצ'אט
-     */
     public boolean cancelChatRequest(String username) {
         return chatManager.cancelChatRequest(username);
     }
     
-    /**
-     * בדיקת מצב משתמש בצ'אט
-     */
     public model.ChatUserStatus getUserChatStatus(String username) {
         return chatManager.getUserStatus(username);
     }
     
-    /**
-     * Getter ל-ChatManager (לצורך גישה ישירה במידת הצורך)
-     */
     public ChatManager getChatManager() {
         return chatManager;
     }
@@ -1597,10 +1458,7 @@ public class SystemController {
      * @return a JSON string with chat details
      */
     public String getChatDetails(String chatId) {
-        // איסוף כל הלוגים של השיחה
         List<LogEntry> chatLogs = getChatLogs(chatId);
-        
-        // ניסיון לקבל ChatSession אם השיחה עדיין פעילה
         model.ChatSession session = null;
         Map<String, model.ChatSession> allChats = chatManager.getAllActiveChats();
         for (model.ChatSession s : allChats.values()) {
@@ -1609,8 +1467,6 @@ public class SystemController {
                 break;
             }
         }
-        
-        // בניית JSON
         StringBuilder json = new StringBuilder("{\"chatId\":\"").append(escapeJson(chatId)).append("\"");
         
         if (session != null) {
@@ -1647,16 +1503,11 @@ public class SystemController {
      * @throws IllegalArgumentException if no logs found for the chat
      */
     public String saveChatToRTF(String chatId) throws IOException {
-        // קבלת כל הלוגים של השיחה
         List<LogEntry> chatLogs = getChatLogs(chatId);
         if (chatLogs.isEmpty()) {
             throw new IllegalArgumentException("No logs found for chat: " + chatId);
         }
-        
-        // קבלת הודעות נוספות מ-ChatManager (אם השיחה עדיין פעילה)
         List<model.ChatMessage> messages = chatManager.getChatHistory(chatId);
-        
-        // קבלת פרטי ChatSession אם קיים
         model.ChatSession session = null;
         Map<String, model.ChatSession> allChats = chatManager.getAllActiveChats();
         for (model.ChatSession s : allChats.values()) {
@@ -1665,12 +1516,8 @@ public class SystemController {
                 break;
             }
         }
-        
-        // יצירת שם קובץ
         String dateStr = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
         String fileName = "chat_" + chatId.replace("CHAT_", "") + "_" + dateStr + ".rtf";
-        
-        // יצירת קובץ RTF
         createChatRTFDocument(fileName, chatId, chatLogs, messages, session);
         
         return fileName;
@@ -1679,17 +1526,12 @@ public class SystemController {
     private void createChatRTFDocument(String fileName, String chatId, List<LogEntry> chatLogs, 
                                       List<model.ChatMessage> messages, model.ChatSession session) throws IOException {
         try (FileWriter writer = new FileWriter(fileName, java.nio.charset.Charset.forName("Windows-1255"))) {
-            // RTF Header עם תמיכה בעברית
             writer.write("{\\rtf1\\ansi\\ansicpg1255\\deff0\\nouicompat\\deflang1037{\\fonttbl{\\f0\\fnil\\fcharset177 Arial;}}\n");
             writer.write("{\\colortbl ;\\red0\\green0\\blue0;}\n");
             writer.write("\\viewkind4\\uc1\n");
             writer.write("\\pard\\sa200\\sl276\\slmult1\\f0\\fs22\\lang1037\\cf1\n");
-            
-            // כותרת
             writer.write(escapeRTFWithUnicode("תוכן שיחה - " + chatId) + "\\par\n");
             writer.write("\\par\n");
-            
-            // פרטי שיחה
             if (session != null) {
                 writer.write(escapeRTFWithUnicode("תאריך התחלה: " + session.getStartTime()) + "\\par\n");
                 writer.write(escapeRTFWithUnicode("משתתפים: "));
@@ -1701,25 +1543,17 @@ public class SystemController {
                 }
                 writer.write("\\par\n");
             } else {
-                // אם אין session, נשתמש בלוג הראשון
                 if (!chatLogs.isEmpty()) {
                     writer.write(escapeRTFWithUnicode("תאריך התחלה: " + chatLogs.get(0).getDateTime()) + "\\par\n");
                 }
             }
             writer.write("\\par\n");
-            
-            // הודעות מהלוגים
             writer.write(escapeRTFWithUnicode("הודעות:") + "\\par\n");
             writer.write("\\par\n");
-            
-            // מיון הלוגים לפי תאריך
             chatLogs.sort((a, b) -> a.getDateTime().compareTo(b.getDateTime()));
-            
             for (LogEntry log : chatLogs) {
                 if ("CHAT_MESSAGE".equals(log.getActionType())) {
-                    // חילוץ sender ו-message מהתיאור
                     String desc = log.getDescription();
-                    // פורמט: "Chat CHAT_123: sender sent: message"
                     int colonIdx = desc.indexOf(": ");
                     if (colonIdx > 0) {
                         String afterChat = desc.substring(colonIdx + 2);
@@ -1736,11 +1570,8 @@ public class SystemController {
                     writer.write(escapeRTFWithUnicode("[" + log.getDateTime() + "] [מערכת]: " + log.getDescription()) + "\\par\n");
                 }
             }
-            
-            // הוספת הודעות מ-ChatManager אם יש (עבור שיחות פעילות)
             if (messages != null && !messages.isEmpty()) {
                 for (model.ChatMessage msg : messages) {
-                    // בדיקה אם ההודעה כבר בלוגים
                     boolean found = false;
                     for (LogEntry log : chatLogs) {
                         if ("CHAT_MESSAGE".equals(log.getActionType()) && 
