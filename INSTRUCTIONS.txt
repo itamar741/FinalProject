@@ -130,8 +130,27 @@ Step 5: Check console messages
 Step 6: Verify server IP address
 - On the server computer, find the actual IP address:
   - Windows: Open CMD, type: ipconfig
-  - Look for "IPv4 Address" under your network adapter
-- Make sure this IP matches the one in client.config
+  - Look for "IPv4 Address" under your network adapter (usually under "Ethernet adapter" or "Wireless LAN adapter")
+  - Note the IP address (for example: 192.168.56.1)
+- Make sure this IP matches the one in client.config on ALL client computers
+- If the IP is different, update client.config on all client computers
+
+Step 7: Test connection manually
+- On the client computer, test if you can reach the server:
+  - Windows: Open CMD, type: telnet 192.168.56.1 5000
+  - If telnet is not available, try: Test-NetConnection -ComputerName 192.168.56.1 -Port 5000 (PowerShell)
+  - Linux/Mac: Open Terminal, type: telnet 192.168.56.1 5000 or: nc -zv 192.168.56.1 5000
+- If connection fails, the problem is network/Firewall related
+- If connection succeeds, the problem is in the Java application
+
+Step 8: Check console output
+- When running the client, check the console/terminal for these messages:
+  - "ClientConnection initialized with server host: 192.168.56.1" (should show the correct IP)
+  - "Attempting to connect to server at 192.168.56.1:5000"
+  - If you see "localhost" instead of "192.168.56.1", the client.config file is not being read
+- When running the server, check for:
+  - "Server listening on port 5000"
+  - "Server is ready to accept connections from any network interface"
 
 If there are other errors:
 - Make sure all files loaded correctly
