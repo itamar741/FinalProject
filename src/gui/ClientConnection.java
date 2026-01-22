@@ -6,10 +6,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * מחלקה לתקשורת עם השרת
- * תומך ב-Dynamic DNS - קורא את כתובת השרת מקובץ תצורה או משתמש בברירת מחדל
- */
+
 public class ClientConnection {
     
     private static final String DEFAULT_SERVER_HOST = "localhost"; // Fallback for local development
@@ -29,6 +26,7 @@ public class ClientConnection {
      */
     public ClientConnection() {
         this.serverHost = getServerHostFromConfig();
+        System.out.println("ClientConnection initialized with server host: " + serverHost);
     }
     
     /**
@@ -93,21 +91,22 @@ public class ClientConnection {
      */
     public boolean connect() {
         try {
+            System.out.println("Attempting to connect to server at " + serverHost + ":" + SERVER_PORT);
             socket = new Socket(serverHost, SERVER_PORT);
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
-            // קריאת הודעת CONNECTED מהשרת
             String response = in.readLine();
             if (response != null && response.equals("CONNECTED")) {
                 connected = true;
+                System.out.println("Successfully connected to server");
                 return true;
             }
             
             disconnect();
             return false;
         } catch (IOException e) {
-            System.err.println("Connection error: " + e.getMessage());
+            System.err.println("Connection error to " + serverHost + ":" + SERVER_PORT + " - " + e.getMessage());
             return false;
         }
     }

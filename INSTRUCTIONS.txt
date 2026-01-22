@@ -95,16 +95,48 @@ Use this for initial login.
 
 6. Troubleshooting
 ------------------
-If the client cannot connect to the server:
-- Make sure the server is running on computer 192.168.56.1
-- Make sure the IP address in client.config is 192.168.56.1
-- Make sure both computers are on the same network (WiFi or Ethernet)
-- Check that port 5000 is not blocked by Firewall
+If the client cannot connect to the server and you see "Cannot connect to server" error:
 
-If there are errors:
+Step 1: Check the server is running
+- On the server computer (192.168.56.1), make sure ServerMain is running
+- You should see "Server listening on port 5000" message
+- If not, restart the server
+
+Step 2: Check client.config file
+- On the client computer, open client.config file
+- Make sure it contains: serverHost=192.168.56.1
+- Make sure there are no extra spaces or characters
+- The file should be in the project root folder (same folder as src/)
+
+Step 3: Check network connection
+- Make sure both computers are on the same network (same WiFi or same Ethernet)
+- On client computer, try to ping the server:
+  - Windows: Open CMD and type: ping 192.168.56.1
+  - Linux/Mac: Open Terminal and type: ping 192.168.56.1
+- If ping fails, the computers are not on the same network
+
+Step 4: Check Firewall
+- On the server computer (192.168.56.1), check Windows Firewall:
+  - Windows: Control Panel -> Windows Defender Firewall -> Allow an app
+  - Make sure Java is allowed, or allow port 5000
+- On client computer, check if outgoing connections are blocked
+
+Step 5: Check console messages
+- When running the client, check the console/terminal output
+- You should see: "ClientConnection initialized with server host: 192.168.56.1"
+- You should see: "Attempting to connect to server at 192.168.56.1:5000"
+- If you see a different IP address, the client.config file is not being read correctly
+
+Step 6: Verify server IP address
+- On the server computer, find the actual IP address:
+  - Windows: Open CMD, type: ipconfig
+  - Look for "IPv4 Address" under your network adapter
+- Make sure this IP matches the one in client.config
+
+If there are other errors:
 - Make sure all files loaded correctly
 - Make sure there is a data/ folder with JSON files
-- Check the console to see error messages
+- Check the console to see detailed error messages
 
 
 7. Important Notes

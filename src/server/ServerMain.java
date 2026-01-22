@@ -35,8 +35,8 @@ public class ServerMain {
         SystemController controller = new SystemController();
 
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-
             System.out.println("Server listening on port " + PORT);
+            System.out.println("Server is ready to accept connections from any network interface");
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();

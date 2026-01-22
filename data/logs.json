@@ -938,5 +938,35 @@
     "actionType": "LOGOUT",
     "description": "User admin logged out",
     "dateTime": "2026-01-22T14:06:15.934910900"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /192.168.56.1:60212",
+    "dateTime": "2026-01-22T14:24:10.330757500"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T14:31:31.239040300"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /192.168.56.1:59271",
+    "dateTime": "2026-01-22T14:31:53.972994400"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T14:33:31.287864400"
+  },
+  {
+    "actionType": "LOGIN",
+    "description": "User admin (admin) logged in from /192.168.56.1:53929",
+    "dateTime": "2026-01-22T14:36:08.539546100"
+  },
+  {
+    "actionType": "LOGOUT",
+    "description": "User admin logged out",
+    "dateTime": "2026-01-22T14:36:11.227347600"
   }
 ]
