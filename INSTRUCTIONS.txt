@@ -5,28 +5,52 @@ Setup Instructions - Clothing Store Management System
 ----------------------
 The server must run on one computer. All clients connect to the same server.
 
-a. Open the project in IntelliJ IDEA (or another IDE)
-
+Option A: Using IntelliJ IDEA (or another IDE)
+a. Open the project in IntelliJ IDEA
 b. Find the file: src/server/ServerMain.java
-
 c. Run the file (Run -> Run 'ServerMain' or Shift+F10)
-
 d. If everything is OK, you will see: "Server listening on port 5000"
-
 e. Keep the window open - the server must run all the time
+
+Option B: Using Terminal/Command Line
+a. Open Terminal (Linux/Mac) or Command Prompt (Windows)
+b. Navigate to the project directory (where src/ folder is located)
+c. Compile all Java files. You can use one of these methods:
+   
+   Method 1 - Compile all files at once (if your system supports it):
+   - Windows: javac -d out -encoding UTF-8 -sourcepath src src\server\*.java src\controller\*.java src\model\*.java src\model\managers\*.java src\model\exceptions\*.java src\storage\*.java src\gui\*.java src\gui\dialogs\*.java src\gui\tabs\*.java src\gui\windows\*.java
+   - Linux/Mac: javac -d out -encoding UTF-8 -sourcepath src src/server/*.java src/controller/*.java src/model/*.java src/model/managers/*.java src/model/exceptions/*.java src/storage/*.java src/gui/*.java src/gui/dialogs/*.java src/gui/tabs/*.java src/gui/windows/*.java
+   
+   Method 2 - Compile recursively (simpler):
+   - Find all .java files and compile them:
+     Windows PowerShell: Get-ChildItem -Recurse -Filter *.java | ForEach-Object { javac -d out -encoding UTF-8 -sourcepath src $_.FullName }
+     Linux/Mac: find src -name "*.java" -exec javac -d out -encoding UTF-8 -sourcepath src {} \;
+   
+   Note: Make sure the "out" folder exists. If not, create it first: mkdir out
+
+d. Run the server:
+   - java -cp out server.ServerMain
+e. If everything is OK, you will see: "Server listening on port 5000"
+f. Keep the terminal open - the server must run all the time
 
 
 2. Running a Client
 -------------------
 Every user who wants to use the software needs to run the client on their computer.
 
+Option A: Using IntelliJ IDEA (or another IDE)
 a. Open the project in IntelliJ IDEA
-
 b. Find the file: src/gui/LoginWindow.java
-
 c. Run the file (Run -> Run 'LoginWindow' or Shift+F10)
-
 d. A login window will open
+
+Option B: Using Terminal/Command Line
+a. Open Terminal (Linux/Mac) or Command Prompt (Windows)
+b. Navigate to the project directory (where src/ folder is located)
+c. If you haven't compiled yet, compile all Java files (see Server instructions in section 1)
+d. Run the client:
+   - java -cp out gui.LoginWindow
+e. A login window will open
 
 
 3. Connecting from Multiple Computers
