@@ -1,99 +1,91 @@
-הוראות הפעלה - מערכת ניהול חנות בגדים
-==========================================
+Setup Instructions - Clothing Store Management System
+======================================================
 
-1. הרצת השרת
--------------
-השרת צריך לרוץ על מחשב אחד. כל הלקוחות מתחברים לאותו שרת.
+1. Running the Server
+----------------------
+The server must run on one computer. All clients connect to the same server.
 
-א. פתח את הפרויקט ב-IntelliJ IDEA (או IDE אחר)
+a. Open the project in IntelliJ IDEA (or another IDE)
 
-ב. מצא את הקובץ: src/server/ServerMain.java
+b. Find the file: src/server/ServerMain.java
 
-ג. הרץ את הקובץ (Run -> Run 'ServerMain' או Shift+F10)
+c. Run the file (Run -> Run 'ServerMain' or Shift+F10)
 
-ד. אם הכל תקין, תראה הודעה: "Server listening on port 5000"
+d. If everything is OK, you will see: "Server listening on port 5000"
 
-ה. השאר את החלון פתוח - השרת צריך לרוץ כל הזמן
-
-
-2. הרצת לקוח (Client)
----------------------
-כל משתמש שרוצה להשתמש בתוכנה צריך להריץ את הלקוח על המחשב שלו.
-
-א. פתח את הפרויקט ב-IntelliJ IDEA
-
-ב. מצא את הקובץ: src/gui/LoginWindow.java
-
-ג. הרץ את הקובץ (Run -> Run 'LoginWindow' או Shift+F10)
-
-ד. חלון התחברות ייפתח
+e. Keep the window open - the server must run all the time
 
 
-3. חיבור מכמה מחשבים
----------------------
-כדי שמספר מחשבים יתחברו לאותו שרת:
+2. Running a Client
+-------------------
+Every user who wants to use the software needs to run the client on their computer.
 
-א. מצא את כתובת ה-IP של המחשב שרץ עליו השרת:
-   - Windows: פתח CMD והקלד: ipconfig
-   - חפש את "IPv4 Address" (למשל: 192.168.1.100)
+a. Open the project in IntelliJ IDEA
 
-ב. על כל מחשב אחר שרוצה להתחבר:
-   - צור קובץ בשם: client.config
-   - הקובץ צריך להיות בתיקיית הפרויקט (איפה שיש את src/)
-   - כתוב בקובץ:
-     serverHost=192.168.1.100
-   (החלף 192.168.1.100 בכתובת ה-IP של המחשב עם השרת)
+b. Find the file: src/gui/LoginWindow.java
 
-ג. הרץ את LoginWindow על המחשב הזה
+c. Run the file (Run -> Run 'LoginWindow' or Shift+F10)
 
-ד. התוכנה תתחבר לשרת אוטומטית
+d. A login window will open
 
 
-4. דוגמה - שימוש עם 3 מחשבים
-------------------------------
-מחשב 1 (IP: 192.168.1.100):
-- מריץ את ServerMain
-- משאיר את השרת פתוח
+3. Connecting from Multiple Computers
+-------------------------------------
+The client.config file already exists in the project and contains the server address: 192.168.56.1
 
-מחשב 2 (IP: 192.168.1.101):
-- יוצר client.config עם: serverHost=192.168.1.100
-- מריץ את LoginWindow
-- מתחבר לשרת
+If you download the project from Git:
+- The client.config file already exists
+- Just run LoginWindow and the software will connect to the server automatically
 
-מחשב 3 (IP: 192.168.1.102):
-- יוצר client.config עם: serverHost=192.168.1.100
-- מריץ את LoginWindow
-- מתחבר לאותו שרת
-
-כל המשתמשים רואים את אותם נתונים ומתקשרים ביניהם בצ'אט!
+If you want to change the server address:
+- Open the client.config file
+- Change the address after serverHost=
 
 
-5. משתמשים ברירת מחדל
------------------------
-כשמריצים את השרת בפעם הראשונה, נוצרים משתמשים אוטומטית:
-- admin / admin (מנהל מערכת)
-- superadmin / superadmin (מנהל על)
+4. Example - Using 3 Computers
+--------------------------------
+Computer 1 (IP: 192.168.56.1) - The Server:
+- Runs ServerMain
+- Keeps the server open
 
-השתמש בהם להתחברות ראשונית.
+Computer 2:
+- Downloads the project from Git (client.config file already exists)
+- Runs LoginWindow
+- Connects to the server automatically
 
+Computer 3:
+- Downloads the project from Git (client.config file already exists)
+- Runs LoginWindow
+- Connects to the same server
 
-6. פתרון בעיות
---------------
-אם הלקוח לא מתחבר לשרת:
-- ודא שהשרת רץ על המחשב השני
-- ודא שכתובת ה-IP ב-client.config נכונה
-- ודא ששני המחשבים באותה רשת (WiFi או Ethernet)
-- בדוק שהפורט 5000 לא חסום ב-Firewall
-
-אם יש שגיאות:
-- ודא שכל הקבצים נטענו נכון
-- ודא שיש תיקיית data/ עם קבצי JSON
-- בדוק את ה-console לראות הודעות שגיאה
+All users see the same data and communicate with each other in chat!
 
 
-7. הערות חשובות
+5. Default Users
 ----------------
-- השרת חייב לרוץ כל הזמן - אם סוגרים אותו, כל הלקוחות מתנתקים
-- כל הלקוחות רואים את אותם נתונים (מוצרים, לקוחות, מכירות)
-- הצ'אט עובד בין כל המשתמשים המחוברים
-- כל שינוי במערכת מתעדכן אוטומטית אצל כל המשתמשים
+When running the server for the first time, a default user is created automatically:
+- admin / admin (System Administrator)
+
+Use this for initial login.
+
+
+6. Troubleshooting
+------------------
+If the client cannot connect to the server:
+- Make sure the server is running on computer 192.168.56.1
+- Make sure the IP address in client.config is 192.168.56.1
+- Make sure both computers are on the same network (WiFi or Ethernet)
+- Check that port 5000 is not blocked by Firewall
+
+If there are errors:
+- Make sure all files loaded correctly
+- Make sure there is a data/ folder with JSON files
+- Check the console to see error messages
+
+
+7. Important Notes
+------------------
+- The server must run all the time - if you close it, all clients disconnect
+- All clients see the same data (products, customers, sales)
+- Chat works between all connected users
+- Every change in the system updates automatically for all users
